@@ -1,0 +1,768 @@
+import macro_analysis
+import sentiment_analysis
+import market_data
+import indicators
+import pandas as pd
+import random # Para Monte Carlo simplificado
+
+# Benchmarks promedio por sector para comparativas relativas
+INDUSTRY_BENCHMARKS = {
+    "Technology": {"debtToEquity": 60, "roe": 0.20, "currentRatio": 1.5, "margin": 0.15, "pe": 30},
+    "Financial Services": {"debtToEquity": 450, "roe": 0.12, "currentRatio": 1.2, "margin": 0.20, "pe": 12},
+    "Healthcare": {"debtToEquity": 80, "roe": 0.15, "currentRatio": 1.8, "margin": 0.10, "pe": 20},
+    "Consumer Cyclical": {"debtToEquity": 100, "roe": 0.18, "currentRatio": 1.4, "margin": 0.08, "pe": 25},
+    "Industrials": {"debtToEquity": 95, "roe": 0.14, "currentRatio": 1.3, "margin": 0.07, "pe": 18},
+    "Energy": {"debtToEquity": 55, "roe": 0.10, "currentRatio": 1.1, "margin": 0.05, "pe": 10},
+    "Communication Services": {"debtToEquity": 125, "roe": 0.15, "currentRatio": 1.2, "margin": 0.12, "pe": 22},
+    "Consumer Defensive": {"debtToEquity": 110, "roe": 0.20, "currentRatio": 1.2, "margin": 0.06, "pe": 20},
+    "Real Estate": {"debtToEquity": 300, "roe": 0.08, "currentRatio": 1.1, "margin": 0.25, "pe": 25},
+    "Utilities": {"debtToEquity": 150, "roe": 0.09, "currentRatio": 1.0, "margin": 0.10, "pe": 18}
+}
+DEFAULT_BENCHMARK = {"debtToEquity": 100, "roe": 0.15, "currentRatio": 1.3, "margin": 0.10, "pe": 20}
+
+class FinancialAgent:
+    def __init__(self, ticker_symbol, is_short_term=False):
+        self.ticker_symbol = ticker_symbol
+        self.is_short_term = is_short_term
+        self.ticker = market_data.get_ticker_data(ticker_symbol)
+        self.data = None
+        self.info = None
+        self.news = None
+        self.macro_data = None
+        self.analysis_results = {}
+
+    def run_analysis(self, pre_data=None):
+        """
+        Ejecuta el análisis completo. 
+        Si se pasa pre_data (dict obtenido de DataManager), se usan esos datos directos.
+        """
+        # 1. Obtener Datos
+        try:
+            if pre_data:
+                self.data = pre_data.get('history')
+                self.info = pre_data.get('fundamentals')
+                self.news = pre_data.get('news')
+            
+            if self.data is None: self.data = market_data.get_historical_data(self.ticker)
+            if self.info is None: self.info = market_data.get_fundamental_info(self.ticker) or {}
+            if self.news is None: self.news = market_data.get_news(self.ticker) or []
+            
+            if pre_data and 'macro_data' in pre_data:
+                self.macro_data = pre_data['macro_data']
+            else:
+                self.macro_data = market_data.get_macro_data()
+        except Exception as e:
+            return {"error": str(e)}
+
+        # 2. Calcular Indicadores
+        self.data = indicators.add_all_indicators(self.data)
+        # Limpiar duplicados si los hay
+        self.data = self.data.loc[:, ~self.data.columns.duplicated()]
+        latest = self.data.iloc[-1]
+        
+        # Extracción de métricas
+        rsi = latest['RSI']
+        macd = latest['MACD']
+        macd_signal = latest['MACD_Signal']
+        sma_200 = latest['SMA_200']
+        sma_50 = latest['SMA_50']
+        price = latest['Close']
+        atr = latest['ATR']
+        stoch_k = latest['Stoch_K']
+        stoch_obv = latest['OBV']
+        adx = latest['ADX']
+        slope = latest['SMA_Slope']
+        mfi = latest['MFI'] if not pd.isna(latest['MFI']) else 50
+        bb_upper = latest['BB_Upper']
+        bb_lower = latest['BB_Lower']
+
+        # 3. Pesos Unificados (Los puntos se definen directamente en cada sección)
+        self.w_tech = 1.0
+        self.w_fund = 1.0
+        self.w_macro = 1.0
+        self.w_qual = 1.0
+
+        score = 0
+        potential_max = 0
+        pros = []
+        cons = []
+        trend_gate_multiplier = 1.0
+        
+        sector = (self.info.get('sector') if self.info else None) or 'Default'
+        is_defensive = any(s in (sector or "") for s in ["Utilities", "Consumer Staples"])
+        bench = INDUSTRY_BENCHMARKS.get(sector, DEFAULT_BENCHMARK)
+
+        # 4. Análisis Técnico
+        # ST: Momentum + Trend Gate. LP: Estabilidad (Beta) + Persistencia
+        rsi_signal = 1 if rsi < 30 else -1 if rsi > 70 else 0
+        stoch_signal = 1 if stoch_k < 20 else -1 if stoch_k > 80 else 0
+        mfi_signal = 1 if mfi < 20 else -0.5 if mfi > 80 else 0
+        
+        momentum_net = (rsi_signal + stoch_signal + mfi_signal) / 3
+        
+        beta = self.info.get('beta', 1.0)
+        
+        if self.is_short_term:
+            # CP v2.1: Momentum Score Compuesto (Max 5.0 pts)
+            mom_score = 0
+            # MACD
+            if macd > macd_signal: mom_score += 1.0
+            # RSI y Slope
+            if rsi > 50 and slope > 0: mom_score += 1.0
+            # Estructura de Medias (Golden Cross / 3-Tier)
+            try:
+                # Asegurar escalares puros usando item() si es necesario
+                p_val = price.item() if hasattr(price, 'item') else float(price)
+                s50_val = sma_50.item() if hasattr(sma_50, 'item') else float(sma_50)
+                s200_val = sma_200.item() if hasattr(sma_200, 'item') else float(sma_200)
+                if p_val > s50_val > s200_val: mom_score += 2.0
+            except Exception:
+                pass
+            # Volumen / MFI
+            vol_rel = 1.0
+            avg_vol_50 = self.info.get('averageVolume', 0)
+            avg_vol_10 = self.info.get('averageVolume10days', 0)
+            if avg_vol_50 and avg_vol_10:
+                vol_rel = avg_vol_10 / avg_vol_50
+            
+            # Filtro de Liquidez Monetaria (Dollar Volume)
+            dollar_vol = avg_vol_50 * price
+            vol_multiplier = 1.0
+            if dollar_vol < 1_000_000: # < $1M
+                vol_multiplier = 0.7
+                cons.append(f"⚠️ Riesgo de slippage: baja liquidez monetaria (${dollar_vol/1e6:.1f}M)")
+
+            if (vol_rel > 1.5 or mfi > 70): 
+                mom_score += 1.0 * vol_multiplier
+            
+            # Normalizar Momentum a la señal neta (-1 a 1)
+            # Como mom_score es 0-5, centramos en 2.5
+            momentum_net_cp = (mom_score - 2.5) / 2.5
+            
+            momentum_pts_cp = 4.0 # CP v2.3: 4.0 pts
+            score += momentum_net_cp * momentum_pts_cp
+            potential_max += momentum_pts_cp
+            
+            if vol_rel > 1.5: pros.append(f"Volumen Relativo Alto ({vol_rel:.1f}x)")
+            if mom_score >= 4: pros.append("Fuerte Momentum Compuesto")
+            
+            # ADX Weekly (Tendencia Estructural)
+            try:
+                # Resamplear a semanal
+                df_weekly = self.data.resample('W').agg({'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last', 'Volume': 'sum'})
+                adx_w_series = indicators.calculate_adx(df_weekly)
+                adx_w = adx_w_series.iloc[-1]
+                if adx_w > 25:
+                    score += 1.0 # CP v2.3: 1.0 pt
+                    pros.append(f"Fuerza de Tendencia Weekly (ADX-W: {adx_w:.1f})")
+                potential_max += 1.0
+            except Exception:
+                # Fallback a ADX diario si falla resample
+                if adx > 25:
+                    score += 1.0
+                potential_max += 1.0
+
+            # Divergencias (RSI)
+            if indicators.detect_rsi_divergence(self.data):
+                score -= 1.0 # CP v2.3: 1.0 pt
+                cons.append("⚠️ Divergencia Bajista Detectada (Precio vs RSI)")
+            potential_max += 1.0
+        else:
+            # Largo Plazo v4.1 (3.0 pts total en Tech)
+            if beta is not None:
+                potential_max += 1.0
+                if beta < 1.0:
+                    score += 1.0
+                    pros.append(f"Baja Volatilidad (Beta: {beta:.2f})")
+            
+            # Momentum en LP (1.0 pt)
+            score += momentum_net * 1.0
+            potential_max += 1.0
+
+        # Estructura Alcista (SMA 200) - Solo para LP (1.0 pt)
+        if not self.is_short_term:
+            if price > sma_200:
+                score += 1.0
+                pros.append("Estructura Alcista (Sobre SMA 200)")
+            else:
+                score -= 1.0
+                cons.append("Estructura Bajista (Bajo SMA 200)")
+            potential_max += 1.0
+
+        # 4b. TREND GATE / VOLATILITY FILTER (Solo CP & LP)
+        if self.is_short_term:
+            # Filtro de Volatilidad CP: Si Beta > 2.0 o ATR% > 5%, moderar entusiasmo técnico
+            atr_pct = (atr / price) * 100
+            if (beta and beta > 2.0) or (atr_pct and atr_pct > 5):
+                score *= 0.8
+                beta_val = beta if beta is not None else 1.0
+                cons.append(f"⚠️ Alta Volatilidad (Beta: {beta_val:.1f}, ATR%: {atr_pct:.1f}%) - Reducir tamaño")
+        
+        if not self.is_short_term:
+            distance = (price - sma_200) / sma_200
+            if price < sma_200:
+                if distance > -0.05 and rsi < 40:
+                    trend_gate_multiplier = 0.9 # Flexibilidad: Cerca de media + sobreventa
+                    pros.append("Cercanía a SMA 200 con sobreventa (Posible Reversión)")
+                else:
+                    trend_gate_multiplier = 0.7
+                    cons.append("⚠️ TREND GATE: Fuerte tendencia bajista estructural - Riesgo de Value Trap")
+
+        # 5. Análisis Fundamental (Benchmarking Industrial en LP)
+        pe = self.info.get('trailingPE')
+        f_pe = self.info.get('forwardPE')
+        
+        # PEG
+        peg = self.info.get('pegRatio')
+        if peg is not None:
+            potential_max += 1.5 if not self.is_short_term else 1.0
+            target_peg = bench.get('peg', 1.0) if not self.is_short_term else 1.0
+            if peg < target_peg:
+                score += 1.5 if not self.is_short_term else 1.0
+                pros.append(f"PEG Ratio Atractivo ({peg:.2f})")
+            elif peg > target_peg * 2:
+                score -= 0.7 if not self.is_short_term else 0.5
+                cons.append(f"PEG Ratio Elevado ({peg:.2f})")
+        else:
+            # Fallback Flexibilidad Prudente: Forward PE vs Industry
+            fpe = self.info.get('forwardPE')
+            bench_pe = bench.get('pe', 20)
+            if fpe:
+                potential_max += 1.0 # Menor peso que PEG real
+                if fpe < bench_pe * 0.8:
+                    score += 0.7
+                    pros.append(f"Valuación Atractiva vs Sector (Fwd P/E: {fpe:.1f} vs Bench: {bench_pe})")
+                elif fpe > bench_pe * 1.5:
+                    score -= 0.4
+                    cons.append(f"Valuación Elevada vs Sector (Fwd P/E: {fpe:.1f} vs Bench: {bench_pe})")
+            else:
+                cons.append("Dato faltante: PEG y P/E - Riesgo de Valuación Indeterminado")
+
+        # Roe
+        roe = self.info.get('returnOnEquity')
+        if roe is not None:
+            if not self.is_short_term:
+                potential_max += 1.0
+                target_roe = bench.get('roe', 0.15)
+                if roe > target_roe:
+                    score += 1.0
+                    pros.append(f"ROE superior al sector ({roe*100:.1f}%)")
+                elif roe < target_roe * 0.7:
+                    score -= 0.5
+                    cons.append(f"ROE bajo para el sector ({roe*100:.1f}%)")
+        else:
+            if not self.is_short_term: cons.append("Dato faltante: ROE")
+
+        # Deuda (D/E)
+        de = self.info.get('debtToEquity')
+        if de is not None:
+            if not self.is_short_term:
+                potential_max += 1.0
+                target_de = bench.get('debtToEquity', 100)
+                if de < target_de:
+                    score += 1.0
+                    pros.append(f"Deuda saludable vs sector ({de:.1f})")
+                elif de > target_de * 2:
+                    score -= 0.5
+                    cons.append(f"Apalancamiento elevado ({de:.1f})")
+        else:
+            if not self.is_short_term: cons.append("Dato faltante: Deuda/Equity")
+
+        # Tamaño y Liquidez (Solo LP v4.1 - 0.5 pts)
+        if not self.is_short_term:
+            mcap = self.info.get('marketCap', 0)
+            avg_vol = self.info.get('averageVolume', 0)
+            potential_max += 0.5
+            if mcap and mcap > 5_000_000_000:
+                score += 0.3
+                pros.append(f"Entidad Institucional (Market Cap: ${mcap/1e9:.1f}B)")
+            if avg_vol and avg_vol > 500_000:
+                score += 0.2
+                pros.append("Liquidez Saludable (>500k acciones/día)")
+
+        # Analistas (LP v4.1 - 0.5 pts)
+        rec_key = self.info.get('recommendationKey')
+        if rec_key:
+            if not self.is_short_term:
+                potential_max += 0.5
+                if rec_key in ['buy', 'strong_buy']: 
+                    score += 0.5
+                    pros.append(f"Analistas: {rec_key.upper()}")
+                elif rec_key in ['sell', 'strong_sell']: 
+                    score -= 0.5
+
+        # Catalizadores de Corto Plazo (CP v2.3 - Total 1.3 pts extras)
+        if self.is_short_term:
+            # Earnings Surprise History (+0.8 pts / -0.8 pts)
+            potential_max += 0.8
+            surprise = market_data.get_earnings_surprise(self.ticker)
+            if surprise > 0.05: # > 5% average surprise
+                score += 0.8
+                pros.append(f"Historial de Sorpresas Positivas ({surprise*100:.1f}%)")
+            elif surprise < -0.05:
+                score -= 0.8
+                cons.append(f"Historial de Sorpresas Negativas ({surprise*100:.1f}%)")
+            
+            # Sostenibilidad FCF (0.5 pts)
+            potential_max += 0.5
+            fcf = self.info.get('freeCashflow')
+            mcap = self.info.get('marketCap')
+            if fcf and mcap and mcap > 0:
+                fcf_yield = fcf / mcap
+                if fcf_yield > 0.05:
+                    score += 0.5
+                    pros.append(f"Fuerte Generación de FCF (Yield: {fcf_yield*100:.1f}%)")
+                elif fcf_yield < 0.02:
+                    score -= 0.5
+                    cons.append(f"Debilidad en Generación de FCF (Yield: {fcf_yield*100:.1f}%)")
+        
+        # 6. Análisis Cualitativo (Moat & Management - Skin in the Game)
+        potential_max += 4.5 * self.w_qual if not self.is_short_term else 2.0 * self.w_qual
+        summary = (self.info.get('longBusinessSummary') or "").lower()
+        moat_keywords = ['leader', 'dominant', 'proprietary', 'patent', 'brand', 'network effect']
+        moat_count = sum(1 for kw in moat_keywords if kw in summary)
+        
+        # Sentimiento cualitativo de Earnings Call (Simulado vía resumen)
+        margin_keywords = ['margin expansion', 'operating leverage', 'pricing power', 'cost discipline']
+        margin_hits = sum(1 for kw in margin_keywords if kw in summary)
+        
+        growth_keywords = ['growth', 'efficiency', 'innovation', 'market share']
+        growth_count = sum(1 for kw in growth_keywords if kw in summary)
+        
+        if not self.is_short_term:
+            # Management factor & Insider Ownership (0.5 pts)
+            insiders = self.info.get('heldPercentInsiders')
+            if insiders is not None:
+                potential_max += 0.5
+                if insiders > 0.01: # > 1%
+                    score += 0.5
+                    pros.append(f"Skin in the Game (Insiders: {insiders*100:.1f}%)")
+                elif insiders < 0.005: # < 0.5%
+                    score -= 0.5
+                    cons.append(f"Baja alineación directiva (Insiders: {insiders*100:.2f}%)")
+            
+            # Tenure refinement (0.5 pts)
+            officers = self.info.get('companyOfficers', [])
+            if officers:
+                potential_max += 0.5
+                has_seniority = any(o.get('age', 0) > 60 for o in officers)
+                if len(officers) > 5 and has_seniority:
+                    score += 0.5
+                    pros.append("Estabilidad Directiva detectada (Seniority & Team Size)")
+                elif len(officers) < 3:
+                    score -= 0.5
+                    cons.append("⚠️ Posible inestabilidad directiva (Equipo reducido/reciente)")
+            else:
+                potential_max += 0.5
+                score -= 0.5
+                cons.append("⚠️ Datos directivos no disponibles (Riesgo de gobernanza)")
+            
+            # Bono por perspectivas de márgenes (NLP Avanzado - 0.5 pts)
+            if margin_hits >= 3:
+                potential_max += 0.5
+                score += 0.5
+                pros.append("Márgenes: Alta convicción en expansión operativa (NLP Hits)")
+            elif growth_count >= 2:
+                potential_max += 0.5
+                score += 0.3
+                pros.append("Narrativa de crecimiento cualitativo detectada")
+
+            # Moat (3.0 pts)
+            moat_points_max = 3.0
+            potential_max += moat_points_max
+            moat_points = min((moat_count / 3) * moat_points_max, moat_points_max)
+            score += moat_points
+            if moat_count >= 3: pros.append("Fuerte Foso Económico (Moat)")
+        else:
+            # CP v2.3: Moat (0.5 pts)
+            potential_max += 0.5
+            if moat_count >= 3: score += 0.5
+            elif moat_count >= 1: score += 0.2
+
+        macro_res = macro_analysis.analyze_macro_context(self.macro_data)
+        sentiment_adv = sentiment_analysis.advanced_sentiment_analysis(self.news)
+        reg_factors = sentiment_analysis.detect_regulatory_factors(self.news)
+        
+        # Sentimiento Cuantitativo (CP v2.3 - 1.5 pts)
+        if self.is_short_term:
+            potential_max += 1.5
+            if sentiment_adv['score'] > 0.6:
+                score += 1.5
+                pros.append(f"Sentimiento Cuantitativo Fuerte ({sentiment_adv['score']:.2f})")
+            elif sentiment_adv['score'] > 0.4:
+                score += 0.7
+                pros.append(f"Sentimiento Cuantitativo Positivo ({sentiment_adv['score']:.2f})")
+        
+        # 7. Análisis Macro (LP v4.1: 3.0 pts | CP v2.3: 4.0 pts)
+        potential_max += 3.0 if not self.is_short_term else 4.0
+        if "error" not in macro_res:
+            vix = macro_res['vix']
+            fgi = macro_res['fear_greed_index']
+            tnx = macro_res['tnx']
+            tnx_trend = macro_res['tnx_trend']
+            yield_spread = macro_res.get('yield_spread', 0)
+            
+            # VIX impact (LP: 1.0, CP: 1.0)
+            if vix > 30: score -= 1.0
+            elif vix < 15: score += 1.0
+
+            # Correlación con SPY (Solo ST)
+            if self.is_short_term:
+                potential_max += 0.5 * self.w_macro
+                corr_spy = market_data.get_spy_correlation(self.ticker)
+                if corr_spy > 0.8:
+                    score *= 0.9 # Penalizar score macro si está muy correlacionado
+                    cons.append(f"⚠️ Alta correlación con mercado (Corr: {corr_spy:.2f})")
+
+            # Yield Curve Spread (0.5 pts)
+            if yield_spread < 0:
+                score -= 0.5
+                cons.append(f"Macro: Curva de Tasas Invertida ({yield_spread:.2f}%)")
+            elif yield_spread > 0:
+                score += 0.5
+            
+            # Proxy de Inflación y Spread de Crédito (LP: 1.0 total | CP: 1.0 total)
+            if not self.is_short_term:
+                # LP v4.1: Inflación (0.5) + Crédito (0.5)
+                if tnx > 4.5:
+                    score -= 0.5
+                    cons.append(f"Macro: Presión Inflacionaria (TNX: {tnx:.1f}%)")
+                
+                if vix > 25 and tnx_trend == "Bajando":
+                    score -= 0.5
+                    cons.append("Macro: Posible señal de estrés crediticio / Recesión")
+            else:
+                # CP v2.3: Impacto Sectorial TNX (1.0 pt)
+                if tnx > 4.0 and not is_defensive:
+                    score -= 1.0
+                    cons.append(f"Macro: Tasas TNX elevadas ({tnx:.1f}%) afectando sector")
+                elif tnx < 3.5:
+                    score += 1.0
+            
+            # FGI (LP: 0.5, CP: 1.5)
+            fgi_cap = 1.5 if self.is_short_term else 0.5
+            if fgi < 20 and price > sma_200: 
+                score += fgi_cap
+                pros.append(f"Oportunidad por Miedo Extremo ({fgi:.0f})")
+            elif fgi > 85 and price < sma_200:
+                score -= fgi_cap
+                cons.append(f"Riesgo por Codicia en tendencia bajista")
+
+        # 8. Normalización Dinámica y Veredicto (V4.0 Ultra-Exigente)
+        if potential_max > 0:
+            confidence = (score / potential_max) * 100
+        else:
+            confidence = 0
+            
+        # Aplicar TREND GATE Multiplier
+        if not self.is_short_term:
+            confidence *= trend_gate_multiplier
+
+        # Monte Carlo (Solo LP)
+        probability_success = None
+        if not self.is_short_term:
+            sims = [(confidence + random.uniform(-1, 1) * 5) for _ in range(100)]
+            probability_success = sum(1 for s in sims if s >= 25) / 100 * 100 # Barrera de éxito consistente con umbral de Compra (25%)
+
+        # Mapeo de Veredicto V4.1 (LP) / V2.1 (CP)
+        if not self.is_short_term:
+            if confidence >= 45 and (probability_success or 0) >= 80:
+                verdict = "FUERTE COMPRA 🚀"
+            elif confidence >= 25:
+                verdict = "COMPRA 🟢"
+            elif confidence >= 5:
+                verdict = "NEUTRAL ⚪"
+            elif confidence >= -10:
+                verdict = "VENTA 🔴"
+            else:
+                verdict = "FUERTE VENTA 💀"
+        else:
+            # CP v2.3: VIX, Inflación & Ajuste Sectorial
+            vix_val = macro_res.get('vix', 20) if "error" not in macro_res else 20
+            tnx_val = macro_res.get('tnx', 0) if "error" not in macro_res else 0
+            # sector ya fue obtenido arriba (línea 91)
+            
+            # Ajuste por presión inflacionaria (TNX > 4%)
+            # Excepción: Defensivas (Utilities, Staples) no se penalizan tanto
+            inf_adj = 0.0
+            if tnx_val > 4.0:
+                if not is_defensive:
+                    inf_adj = 2.0
+                    if sector and ("Technology" in sector or "Consumer Cyclical" in sector):
+                        inf_adj += 1.0 # Sensibilidad extra
+            
+            umbral_base = 15 + (vix_val - 15) * 0.4 + inf_adj
+            umbral_fuerte = 35 + (vix_val - 15) * 0.6 + inf_adj
+            
+            if confidence >= umbral_fuerte: verdict = "FUERTE COMPRA 🚀"
+            elif confidence >= umbral_base: verdict = "COMPRA 🟢"
+            elif confidence >= -10: verdict = "NEUTRAL ⚪"
+            elif confidence >= -25: verdict = "VENTA 🔴"
+            else: verdict = "FUERTE VENTA 💀"
+
+        # Capturar señales para reporte
+        sent_score = sentiment_adv['score']
+        sent_label = sentiment_adv['label']
+        sent_volume = sentiment_adv['volume']
+        fund_signal = "Subvaluada" if peg and peg < 1 else "Sobrevaluada" if peg and peg > 2 else "Neutral"
+        
+        # Niveles de Precio
+        stop_loss = price - (2 * atr)
+        buy_levels = [price * 0.98, price * 0.95, bb_lower if bb_lower < price else price * 0.90]
+        sell_short = price + (1.5 * atr)
+        sell_mid = bb_upper if bb_upper > price else price * 1.15
+        target_price = self.info.get('targetMeanPrice')
+        sell_long = target_price if target_price and target_price > price else price * 1.30
+        
+        # Risk / Reward
+        risk = price - stop_loss
+        reward_short = sell_short - price
+        rr_ratio = reward_short / risk if risk > 0 else 0
+
+        # Horizonte Narrativo
+        horizon = "Corto Plazo (3-6 meses)" if self.is_short_term else "Largo Plazo (3-5 años)"
+        fund_score_est = sum(1 for p in pros if any(k in p for k in ["Deuda", "ROE", "Moat", "Valuación"]))
+        if price < sma_200:
+            if fund_score_est >= 2 and rsi < 40: horizon = "Largo Plazo / Oportunidad de Recuperación"
+            elif fund_score_est >= 3: horizon += " / Timing Adverso"
+            elif fund_score_est >= 1: horizon += " / Fase de Consolidación"
+            else: horizon += " / Bajista"
+
+        self.analysis_results = {
+            "symbol": self.ticker_symbol,
+            "current_price": price,
+            "technical": {
+                "rsi": rsi, "macd_status": "Bullish" if macd > macd_signal else "Bearish",
+                "sma_50": sma_50, "sma_200": sma_200, "adx": adx, "market_env": "Tendencia" if adx > 20 else "Lateral",
+                "stoch_k": stoch_k, "obv": stoch_obv
+            },
+            "fundamental": {
+                "pe": pe, "peg": peg, "signal": fund_signal, "recommendation_key": rec_key
+            },
+            "sentiment": {
+                "score": sent_score, "label": sent_label, "volume": sent_volume
+            },
+            "strategy": {
+                "verdict": verdict, "confidence": confidence, "probability_success": probability_success,
+                "pros": pros, "cons": cons, "stop_loss": stop_loss, "buy_levels": buy_levels,
+                "sell_levels": {"short_term": sell_short, "mid_term": sell_mid, "long_term": sell_long},
+                "risk_reward": rr_ratio, "horizon": horizon
+            },
+            "peers": market_data.get_peers(sector) if sector else [],
+            "macro": macro_res
+        }
+        return self.analysis_results
+
+    def get_report_string(self):
+        if not self.analysis_results:
+            return "No analysis run yet."
+        
+        res = self.analysis_results
+        
+        # Generar Resumen Narrativo Humano
+        score = res['strategy']['confidence'] / 100 * 8.5 # Aprox revertir a score original o usar logic nueva
+        # Usamos el veredicto y horizonte para decidir
+        verdict = res['strategy']['verdict']
+        horizon = res['strategy']['horizon']
+        rr = res['strategy']['risk_reward']
+        
+        human_analysis = ""
+        if self.is_short_term:
+            # Opinión específica para el corto plazo (3-6 meses)
+            if "FUERTE COMPRA" in verdict or "COMPRA" in verdict:
+                human_analysis = (
+                    f"A corto plazo (3-6 meses), veo a {res['symbol']} con un momentum muy favorable. "
+                    "Los indicadores técnicos sugieren que la presión de compra está aumentando. "
+                    "Es una oportunidad excelente para un trade táctico, buscando capturar el próximo impulso. "
+                    "Mantén un ojo en los niveles de resistencia de corto plazo."
+                )
+            elif "VENTA" in verdict or "FUERTE VENTA" in verdict:
+                human_analysis = (
+                    f"Precaución extrema con {res['symbol']} para los próximos 3-6 meses. "
+                    "El momentum es claramente bajista y el riesgo de una corrección mayor es alto. "
+                    "No es momento de buscar rebotes todavía; la estructura de mercado está dañada. "
+                    "Considera reducir exposición para proteger capital táctico."
+                )
+            else:
+                human_analysis = (
+                    f"Para un horizonte de 3-6 meses, {res['symbol']} se encuentra en una fase de consolidación. "
+                    "No hay una tendencia clara a explotar en este momento. "
+                    "Sugiero esperar a que el precio rompa con volumen alguno de los niveles clave antes de entrar. "
+                    "Paciencia estratégica es la clave aquí."
+                )
+        else:
+            # Opinión original (Largo Plazo)
+            if "FUERTE COMPRA" in verdict:
+                human_analysis = (
+                    f"Según mi análisis, {res['symbol']} es una candidata excelente para tu portafolio. "
+                    "Muestra una alineación sólida entre técnicos y fundamentales. "
+                    "Es un momento ideal para compras pensando en el largo plazo (3-5 años)."
+                )
+            elif "COMPRA" in verdict:
+                if "Corto Plazo" in horizon:
+                    human_analysis = (
+                        "Detecto una oportunidad táctica interesante. Técnicamente se ve bien para un rebote, "
+                        "pero haz una compra pequeña y prepárate para vender rápido en los objetivos a corto plazo. "
+                        "Utiliza el Stop Loss disciplinadamente."
+                    )
+                else:
+                    human_analysis = (
+                        "Es un buen punto de entrada. La empresa tiene fundamentos decentes y el precio acompaña. "
+                        "Podrías iniciar una posición escalonada ahora y añadir más si baja a los soportes indicados."
+                    )
+            elif "VENTA" in verdict:
+                human_analysis = (
+                    "Sinceramente, no veo esto bien. Los indicadores apuntan a una caída o corrección. "
+                    "Si tienes ganancias, considera tomarlas ahora. Si buscas comprar, es mejor tener paciencia "
+                    "y esperar niveles más bajos. "
+                    f"Si ya eres holder, te sugiero ajustar tu Stop Loss a ${res['strategy']['stop_loss']:.2f} para proteger capital."
+                )
+            else: # Neutral
+                human_analysis = (
+                    "El escenario está muy indeciso. No hay una ventaja clara. "
+                    "Personalmente, no arriesgaría capital aquí todavía. Mejor espera a que rompa una resistencia clave "
+                    "o busca alternativas con tendencias más definidas en el sector. "
+                    f"Si ya tienes acciones, considera vender si baja de ${res['strategy']['stop_loss']:.2f}."
+                )
+
+        # Añadir Resumen Táctico Dinámico y Benchmarks (Ahora para todos los modos)
+        adx_val = res['technical']['adx']
+        mkt_env = res['technical']['market_env']
+        summary_line = f"\n\n📌 RESUMEN TÁCTICO:\n{res['symbol']}: {mkt_env} (ADX {adx_val:.0f}) -> {verdict}"
+        
+        benchmarks = (
+            "\n\n💡 GUÍA DE REFERENCIA (Benchmarks):\n"
+            "NVDA: Tech Explosivo -> FUERTE COMPRA🚀 (si momentum acompaña).\n"
+            "XOM: Energy -> COMPRA🟢 (Fuerte FCF, ignora spread de tasas si commodities suben).\n"
+            "PG: Staples -> NEUTRAL⚪ (Defensiva estable, inmune a TNX alto).\n"
+            "JPM: Financials -> VENTA🔴 (Alta correlación SPY, señal diluida en corrección)."
+        )
+        human_analysis += summary_line + benchmarks
+
+        # Formato de reporte
+        report = []
+        horizon_label = "CORTO PLAZO (3-6 Meses)" if self.is_short_term else "LARGO PLAZO (3-5 Años)"
+        report.append(f"REPORTE FINANCIERO: {res['symbol']} [{horizon_label}]")
+        report.append("=" * 40)
+        report.append(f"Precio Actual: ${res['current_price']:.2f}")
+
+        # Insertar Análisis Personal al principio
+        report.append("\n🤖 MI OPINIÓN PERSONAL")
+        report.append("-" * 30)
+        report.append(human_analysis)
+        
+        report.append("\n1. ANÁLISIS TÉCNICO")
+        report.append("-" * 30)
+        # report.append(f"Señal Técnica Global: {res['technical']['signal'].upper()}") <-- REMOVED
+        report.append(f"RSI (14): {res['technical']['rsi']:.2f} ({'Sobrecompra' if res['technical']['rsi']>70 else 'Sobreventa' if res['technical']['rsi']<30 else 'Neutral'})")
+        report.append(f"Tendencia (SMA200): {'Alcista' if res['current_price'] > res['technical']['sma_200'] else 'Bajista'}")
+        report.append(f"MACD: {res['technical']['macd_status']}")
+        report.append(f"Estocástico K: {res['technical']['stoch_k']:.2f}")
+        
+        report.append("\n2. ESTRATEGIA & VEREDICTO")
+        report.append("-" * 30)
+        prob_str = f" [Probabilidad: {res['strategy']['probability_success']:.1f}%]" if res['strategy'].get('probability_success') is not None else ""
+        report.append(f"VEREDICTO: {res['strategy']['verdict']} (Confianza: {res['strategy']['confidence']:.0f}%){prob_str}")
+        
+        # Explicar acción sugerida basada en el veredicto
+        action_suggested = "Esperar / Observar"
+        if "COMPRA" in res['strategy']['verdict']: action_suggested = "Considerar Abrir Posición (Largo)"
+        elif "VENTA" in res['strategy']['verdict']: action_suggested = "Considerar Cerrar Posición / Vender"
+        report.append(f"Acción Sugerida: {action_suggested}")
+        
+        report.append(f"Horizonte: {res['strategy']['horizon']}")
+        
+        report.append("\nPOR QUÉ COMPRAR (Pros):")
+        for p in res['strategy']['pros']:
+            report.append(f"  [+] {p}")
+        if not res['strategy']['pros']: report.append("  (Ninguno destacado)")
+
+        report.append("\nPOR QUÉ TENER CUIDADO (Contras):")
+        for c in res['strategy']['cons']:
+            report.append(f"  [-] {c}")
+        if not res['strategy']['cons']: report.append("  (Ninguno destacado)")
+
+        rr = res['strategy']['risk_reward']
+        rr_desc = "(Malo - Riesgo mayor al beneficio)" if rr < 1 else \
+                  "(Aceptable - Ganancia compensa riesgo)" if rr < 2 else \
+                  "(Excelente - Potencial ganancia duplica riesgo)"
+        
+        report.append(f"\nRatio Riesgo/Beneficio (Corto Plazo): {rr:.2f}")
+        report.append(f"Interpretación: {rr_desc}")
+        report.append(f"  * Por cada $1 arriesgado (hasta Stop Loss), se esperan ${rr:.2f} de ganancia (hasta Objetivo).")
+
+        report.append("\n3. ANÁLISIS FUNDAMENTAL")
+        report.append("-" * 30)
+        report.append(f"P/E Ratio: {res['fundamental']['pe']}")
+        report.append(f"PEG Ratio: {res['fundamental']['peg']}")
+        report.append(f"Recomendación Analistas: {res['fundamental']['recommendation_key']}")
+        
+        # Nueva sección de DIVIDENDOS
+        report.append("\n4. DIVIDENDOS")
+        report.append("-" * 30)
+        div_yield = self.info.get('dividendYield')
+        div_rate = self.info.get('dividendRate')
+        payout_ratio = self.info.get('payoutRatio')
+        
+        if div_yield and div_yield > 0:
+            report.append(f"✅ Otorga Dividendos: SÍ")
+            
+            # yfinance a veces devuelve el yield ya multiplicado por 100, otras veces como decimal
+            # Si yield > 1, asumir que ya está en porcentaje
+            if div_yield > 1:
+                yield_pct = div_yield
+            else:
+                yield_pct = div_yield * 100
+                
+            report.append(f"   Rendimiento: {yield_pct:.2f}%")
+            if div_rate:
+                report.append(f"   Pago Anual: ${div_rate:.2f} por acción")
+            if payout_ratio:
+                # Mismo tratamiento para payout ratio
+                payout_pct = payout_ratio if payout_ratio > 1 else payout_ratio * 100
+                report.append(f"   Payout Ratio: {payout_pct:.1f}%")
+            
+            # Interpretación (usar yield normalizado)
+            yield_decimal = yield_pct / 100 if div_yield > 1 else div_yield
+            if yield_decimal > 0.05:  # >5%
+                report.append("   💰 Dividendo muy atractivo para ingresos pasivos")
+            elif yield_decimal > 0.03:  # >3%
+                report.append("   💵 Dividendo sólido")
+            else:
+                report.append("   💲 Dividendo modesto")
+        else:
+            report.append("❌ Otorga Dividendos: NO")
+            report.append("   Esta empresa no paga dividendos (reinvierte ganancias en crecimiento)")
+        
+        report.append("\n5. SENTIMENTO DE MERCADO")
+        report.append("-" * 30)
+        report.append(f"Sentimiento Noticias: {res['sentiment']['label']} (Score: {res['sentiment']['score']:.2f})")
+        report.append(f"Noticias Procesadas: {res['sentiment'].get('volume', 0)}")
+        
+        report.append("\n6. CONTEXTO MACROECONÓMICO")
+        report.append("-" * 30)
+        if "error" not in res['macro']:
+            m = res['macro']
+            report.append(f"Índice Miedo/Codicia: {m['fear_greed_label']} ({m['fear_greed_index']:.1f}/100)")
+            report.append(f"Volatilidad (VIX): {m['vix']:.2f}")
+            report.append(f"Bonos 10 Años (TNX): {m['tnx']:.2f}% ({m['tnx_trend']})")
+        else:
+            report.append("Datos no disponibles.")
+
+        report.append("\n7. NIVELES CLAVE")
+        report.append("-" * 30)
+        report.append(f"Stop Loss Sugerido: ${res['strategy']['stop_loss']:.2f}")
+        report.append("Niveles de Compra Escalonada:")
+        for lvl in res['strategy']['buy_levels']:
+            report.append(f"  - ${lvl:.2f}")
+            
+        report.append("\nOBJETIVOS DE VENTA (Take Profit):")
+        report.append(f"  - Corto Plazo: ${res['strategy']['sell_levels']['short_term']:.2f}")
+        report.append(f"  - Medio Plazo: ${res['strategy']['sell_levels']['mid_term']:.2f}")
+        report.append(f"  - Largo Plazo (Analistas): ${res['strategy']['sell_levels']['long_term']:.2f}")
+        
+        report.append("\n8. ALTERNATIVAS (Mismo Sector)")
+        report.append("-" * 30)
+        report.append(", ".join(res['peers'][:5]))
+
+        return "\n".join(report)

@@ -1,0 +1,112 @@
+[
+    {
+        "symbol": "SOFI",
+        "buy_price": 8.1,
+        "date": "2025-12-21 20:37:11"
+    },
+    {
+        "symbol": "WMT",
+        "buy_price": 57.46,
+        "date": "2025-12-21 20:40:08"
+    },
+    {
+        "symbol": "ORCL",
+        "buy_price": 214.85,
+        "date": "2025-12-21 20:41:54"
+    },
+    {
+        "symbol": "META",
+        "buy_price": 706.87,
+        "date": "2025-12-21 20:42:36"
+    },
+    {
+        "symbol": "NVDA",
+        "buy_price": 133.22,
+        "date": "2025-12-21 20:43:21"
+    },
+    {
+        "symbol": "NKE",
+        "buy_price": 80.78,
+        "date": "2025-12-21 20:43:59"
+    },
+    {
+        "symbol": "MSFT",
+        "buy_price": 485.52,
+        "date": "2025-12-21 20:45:32"
+    },
+    {
+        "symbol": "TSLA",
+        "buy_price": 223.16,
+        "date": "2025-12-21 20:46:36"
+    },
+    {
+        "symbol": "AMD",
+        "buy_price": 136.87,
+        "date": "2025-12-21 20:47:13"
+    },
+    {
+        "symbol": "BABA",
+        "buy_price": 133.25,
+        "date": "2025-12-21 20:50:23"
+    },
+    {
+        "symbol": "AMZN",
+        "buy_price": 213.13,
+        "date": "2025-12-21 20:51:47"
+    },
+    {
+        "symbol": "NU",
+        "buy_price": 11.52,
+        "date": "2025-12-21 20:52:51"
+    },
+    {
+        "symbol": "RIVN",
+        "buy_price": 13.08,
+        "date": "2025-12-21 20:53:21"
+    },
+    {
+        "symbol": "DIS",
+        "buy_price": 93.3,
+        "date": "2025-12-21 20:54:01"
+    },
+    {
+        "symbol": "GOOGL",
+        "buy_price": 172.79,
+        "date": "2025-12-21 20:54:39"
+    },
+    {
+        "symbol": "XOM",
+        "buy_price": 119.25,
+        "date": "2025-12-21 20:55:21"
+    },
+    {
+        "symbol": "OXY",
+        "buy_price": 54.98,
+        "date": "2025-12-21 20:56:22"
+    },
+    {
+        "symbol": "LULU",
+        "buy_price": 223.8,
+        "date": "2025-12-21 20:56:55"
+    },
+    {
+        "symbol": "XYZ",
+        "buy_price": 62.01,
+        "date": "2025-12-21 20:57:31"
+    },
+    {
+        "symbol": "CRM",
+        "buy_price": 260.64,
+        "date": "2025-12-21 20:58:05"
+    },
+    {
+        "symbol": "ARM",
+        "buy_price": 167.77,
+        "date": "2025-12-21 20:59:09"
+    },
+    {
+        "symbol": "INTC",
+        "buy_price": 23.8,
+        "date": "2025-12-21 21:00:01"
+    }
+]
