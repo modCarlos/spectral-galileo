@@ -19,3 +19,8 @@ tests/__pycache__/test_sentiment_hybrid.cpython-314-pytest-9.0.2.pyc
 __pycache__/report_generator.cpython-314.pyc
 tests/__pycache__/test_agent_comprehensive.cpython-314.pyc
 tests/__pycache__/test_agent_scoring.cpython-314.pyc
+
+# Backtesting Data
+backtest_data/*.csv
+backtest_results/
+.backtest_cache/
