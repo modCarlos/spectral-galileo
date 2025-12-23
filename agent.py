@@ -2,8 +2,11 @@ import macro_analysis
 import sentiment_analysis
 import market_data
 import indicators
+import report_generator
 import pandas as pd
 import random # Para Monte Carlo simplificado
+import os
+from datetime import datetime
 
 # Benchmarks promedio por sector para comparativas relativas
 INDUSTRY_BENCHMARKS = {
@@ -530,7 +533,9 @@ class FinancialAgent:
 
         self.analysis_results = {
             "symbol": self.ticker_symbol,
+            "ticker": self.ticker_symbol,  # Alias para compatibilidad con report_generator
             "current_price": price,
+            "price": price,  # Alias para template HTML
             "technical": {
                 "rsi": rsi, "macd_status": "Bullish" if macd > macd_signal else "Bearish",
                 "sma_50": sma_50, "sma_200": sma_200, "adx": adx, "market_env": "Tendencia" if adx > 20 else "Lateral",
@@ -766,3 +771,147 @@ class FinancialAgent:
         report.append(", ".join(res['peers'][:5]))
 
         return "\n".join(report)
+
+    # ========== INTEGRACIÓN CON REPORT GENERATOR ==========
+    
+    def generate_html_report(self, output_dir: str = './reports') -> str:
+        """
+        Genera reporte HTML a partir del análisis.
+        
+        Args:
+            output_dir (str): Directorio de salida para reportes
+            
+        Returns:
+            str: Path al archivo HTML generado
+            
+        Ejemplo:
+            agent = FinancialAgent('AAPL')
+            result = agent.run_analysis()
+            report_path = agent.generate_html_report()
+            print(f"Reporte: {report_path}")
+        """
+        # Asegurar que tenemos análisis completo
+        if not self.analysis_results:
+            self.analysis_results = self.run_analysis()
+        
+        try:
+            gen = report_generator.ReportGenerator(self.analysis_results)
+            # Crear directorio si no existe
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            # El método se llama generate() no generate_html_report()
+            gen.generate(output_dir=output_dir)
+            report_path = os.path.join(output_dir, gen.filename)
+            return report_path
+        except Exception as e:
+            print(f"⚠️ Error generando reporte HTML: {e}")
+            return None
+    
+    def export_analysis_to_csv(self, output_dir: str = './reports', 
+                               filename: str = None) -> str:
+        """
+        Exporta análisis a CSV.
+        
+        Args:
+            output_dir (str): Directorio de salida
+            filename (str): Nombre de archivo (default: auto-generated)
+            
+        Returns:
+            str: Path al CSV
+        """
+        if not self.analysis_results:
+            self.analysis_results = self.run_analysis()
+        
+        try:
+            gen = report_generator.ReportGenerator(self.analysis_results)
+            return gen.export_to_csv(
+                results=[self.analysis_results],
+                output_dir=output_dir,
+                filename=filename or f"analysis_{self.ticker_symbol}.csv"
+            )
+        except Exception as e:
+            print(f"⚠️ Error exportando a CSV: {e}")
+            return None
+    
+    def export_analysis_to_json(self, output_dir: str = './reports',
+                                filename: str = None) -> str:
+        """
+        Exporta análisis a JSON.
+        
+        Args:
+            output_dir (str): Directorio de salida
+            filename (str): Nombre de archivo (default: auto-generated)
+            
+        Returns:
+            str: Path al JSON
+        """
+        if not self.analysis_results:
+            self.analysis_results = self.run_analysis()
+        
+        try:
+            gen = report_generator.ReportGenerator(self.analysis_results)
+            return gen.export_to_json(
+                result=self.analysis_results,
+                output_dir=output_dir,
+                filename=filename or f"analysis_{self.ticker_symbol}.json"
+            )
+        except Exception as e:
+            print(f"⚠️ Error exportando a JSON: {e}")
+            return None
+    
+    @classmethod
+    def batch_analysis_with_reports(cls, tickers: list, 
+                                    is_short_term: bool = False,
+                                    output_dir: str = './reports',
+                                    generate_summary: bool = True) -> tuple:
+        """
+        Ejecuta análisis batch y genera reportes consolidados.
+        
+        Args:
+            tickers (list): Lista de símbolos a analizar
+            is_short_term (bool): Horizonte temporal
+            output_dir (str): Directorio para reportes
+            generate_summary (bool): Generar tabla resumen
+            
+        Returns:
+            tuple: (results_list, summary_path)
+            
+        Ejemplo:
+            results, summary = FinancialAgent.batch_analysis_with_reports(
+                ['AAPL', 'MSFT', 'GOOGL'],
+                is_short_term=False,
+                generate_summary=True
+            )
+            print(f"Análisis completados: {len(results)}")
+            print(f"Resumen: {summary}")
+        """
+        results = []
+        errors = []
+        
+        for ticker in tickers:
+            try:
+                agent = cls(ticker, is_short_term=is_short_term)
+                result = agent.run_analysis()
+                results.append(result)
+            except Exception as e:
+                errors.append(f"{ticker}: {str(e)}")
+        
+        summary_path = None
+        if generate_summary and results:
+            try:
+                gen = report_generator.ReportGenerator(results[0])
+                summary_path = gen.export_to_csv(
+                    results=results,
+                    output_dir=output_dir,
+                    filename=f"batch_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                )
+            except Exception as e:
+                print(f"⚠️ Error generando resumen: {e}")
+        
+        if errors:
+            print(f"\n⚠️ Errores durante análisis batch:")
+            for err in errors:
+                print(f"   - {err}")
+        
+        return results, summary_path
+

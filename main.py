@@ -31,7 +31,7 @@ def time_limit(seconds):
     finally:
         signal.alarm(0)
 
-def run_portfolio_scanner(is_short_term=False):
+def run_portfolio_scanner(is_short_term=False, generate_html=False):
     """
     Escanea el portafolio completo y muestra un resumen optimizado.
     """
@@ -94,8 +94,31 @@ def run_portfolio_scanner(is_short_term=False):
     print(f"ESTADO DEL PORTAFOLIO")
     print("="*80 + "\n")
     print(tabulate(results_list, headers=headers, tablefmt="fancy_grid") + "\n")
+    
+    # Generar HTMLs si se solicitó
+    if generate_html:
+        try:
+            portfolio_tickers = sorted(list(set(item['symbol'] for item in portfolio_manager.load_portfolio())))
+            if portfolio_tickers:
+                print(f"\n{Fore.CYAN}Generando reportes HTML para {len(portfolio_tickers)} acciones...{Style.RESET_ALL}")
+                html_count = 0
+                for ticker in portfolio_tickers:
+                    try:
+                        agent = FinancialAgent(ticker, is_short_term=is_short_term)
+                        # Usar datos ya analizados si están disponibles
+                        if ticker in analysis_cache:
+                            agent.last_results = analysis_cache[ticker]
+                        report_path = agent.generate_html_report(output_dir='./reports')
+                        if report_path:
+                            html_count += 1
+                    except Exception:
+                        pass
+                if html_count > 0:
+                    print(f"{Fore.GREEN}✅ {html_count} reportes HTML generados en ./reports/{Style.RESET_ALL}\n")
+        except Exception as e:
+            print(f"{Fore.YELLOW}⚠️ Error generando HTMLs: {str(e)}{Style.RESET_ALL}\n")
 
-def run_watchlist_scanner(is_short_term=False):
+def run_watchlist_scanner(is_short_term=False, generate_html=False):
     """
     Escanea las acciones en la watchlist.
     """
@@ -136,10 +159,28 @@ def run_watchlist_scanner(is_short_term=False):
         print("\n" + tabulate(table_data, headers=["Ticker", "Precio", "Veredicto", "Confianza"], tablefmt="fancy_grid") + "\n")
     else:
         print(f"\n{Fore.YELLOW}No se pudieron obtener resultados para tu watchlist.{Style.RESET_ALL}")
+    
+    # Generar HTMLs si se solicitó
+    if generate_html and table_data:
+        try:
+            print(f"{Fore.CYAN}Generando reportes HTML para {len(tickers)} acciones...{Style.RESET_ALL}")
+            html_count = 0
+            for ticker in tickers:
+                try:
+                    agent = FinancialAgent(ticker, is_short_term=is_short_term)
+                    report_path = agent.generate_html_report(output_dir='./reports')
+                    if report_path:
+                        html_count += 1
+                except Exception:
+                    pass
+            if html_count > 0:
+                print(f"{Fore.GREEN}✅ {html_count} reportes HTML generados en ./reports/{Style.RESET_ALL}\n")
+        except Exception as e:
+            print(f"{Fore.YELLOW}⚠️ Error generando HTMLs: {str(e)}{Style.RESET_ALL}\n")
 
 
 
-def run_scanner(is_short_term=False):
+def run_scanner(is_short_term=False, generate_html=False):
     """
     Escanea las top 25 empresas del S&P 500 en paralelo.
     """
@@ -177,6 +218,24 @@ def run_scanner(is_short_term=False):
         print("\n" + tabulate(table_data, headers=["Ticker", "Precio", "Veredicto", "Confianza"], tablefmt="fancy_grid"))
     else:
         print(f"\n{Fore.YELLOW}No se encontraron oportunidades claras.{Style.RESET_ALL}")
+    
+    # Generar HTMLs si se solicitó
+    if generate_html and tickers:
+        try:
+            print(f"\n{Fore.CYAN}Generando reportes HTML para {len(tickers)} acciones...{Style.RESET_ALL}")
+            html_count = 0
+            for ticker in tickers:
+                try:
+                    agent = FinancialAgent(ticker, is_short_term=is_short_term)
+                    report_path = agent.generate_html_report(output_dir='./reports')
+                    if report_path:
+                        html_count += 1
+                except Exception:
+                    pass
+            if html_count > 0:
+                print(f"{Fore.GREEN}✅ {html_count} reportes HTML generados en ./reports/{Style.RESET_ALL}\n")
+        except Exception as e:
+            print(f"{Fore.YELLOW}⚠️ Error generando HTMLs: {str(e)}{Style.RESET_ALL}\n")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -254,6 +313,10 @@ SISTEMA DE EXCELENCIA 2.0:
     parser.add_argument('--backtest', type=str, nargs='+', metavar='TICKER [START] [END]',
                         help='Backtesting simple (ej. --backtest NVDA 2025-01-01 2025-12-21)')
     
+    # Report generation
+    parser.add_argument('--html', action='store_true',
+                        help='Generar reporte HTML del análisis (se guardará en ./reports/)')
+    
     parser.add_argument('--short-term', action='store_true',
                         help='Análisis optimizado para el corto plazo (3-6 meses)')
     
@@ -318,15 +381,15 @@ SISTEMA DE EXCELENCIA 2.0:
             print(f"\n{Fore.YELLOW}{msg}{Style.RESET_ALL}\n")
             
     elif args.scan_portfolio:
-        run_portfolio_scanner(is_short_term=args.short_term)
+        run_portfolio_scanner(is_short_term=args.short_term, generate_html=args.html)
         
     elif args.watchlist or (args.scan and not any([args.add, args.remove, args.remove_all])):
         # Si se usa --watchlist O si se usa --scan pero el usuario tiene intención de ver favoritos (lógica flexible)
         # Priorizamos el comando explícito
         if args.watchlist:
-            run_watchlist_scanner(is_short_term=args.short_term)
+            run_watchlist_scanner(is_short_term=args.short_term, generate_html=args.html)
         elif args.scan:
-            run_scanner(is_short_term=args.short_term)
+            run_scanner(is_short_term=args.short_term, generate_html=args.html)
             
     elif args.watch:
         msg = watchlist_manager.add_to_watchlist(args.watch)
@@ -353,7 +416,20 @@ SISTEMA DE EXCELENCIA 2.0:
                 print(f"\n{Fore.RED}Error al analizar {args.ticker}: {results['error']}{Style.RESET_ALL}\n")
             else:
                 print(agent.get_report_string())
-                print(f"\n{Fore.GREEN}Análisis Completado.{Style.RESET_ALL}")
+                
+                # Generar HTML si se solicitó
+                if args.html:
+                    try:
+                        report_path = agent.generate_html_report(output_dir='./reports')
+                        if report_path:
+                            print(f"\n{Fore.GREEN}✅ Reporte HTML generado:{Style.RESET_ALL}")
+                            print(f"   📄 {report_path}\n")
+                        else:
+                            print(f"\n{Fore.YELLOW}⚠️ No se pudo generar el reporte HTML{Style.RESET_ALL}\n")
+                    except Exception as e:
+                        print(f"\n{Fore.YELLOW}⚠️ Error generando HTML: {str(e)}{Style.RESET_ALL}\n")
+                
+                print(f"{Fore.GREEN}Análisis Completado.{Style.RESET_ALL}")
         except Exception as e:
             print(f"\n{Fore.RED}Error inesperado: {str(e)}{Style.RESET_ALL}\n")
 

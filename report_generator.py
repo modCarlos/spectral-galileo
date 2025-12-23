@@ -7,7 +7,10 @@ from jinja2 import Template
 class ReportGenerator:
     def __init__(self, analysis_result):
         self.result = analysis_result
-        self.ticker = analysis_result['ticker']
+        # Aceptar tanto 'ticker' como 'symbol' para compatibilidad
+        self.ticker = analysis_result.get('ticker') or analysis_result.get('symbol')
+        if not self.ticker:
+            raise KeyError("analysis_result debe contener 'ticker' o 'symbol'")
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.filename = f"report_{self.ticker}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
         
@@ -97,7 +100,7 @@ class ReportGenerator:
             </div>
             <div class="text-right">
                 <p class="text-sm text-slate-500">Generado el: {{ timestamp }}</p>
-                <div class="text-2xl font-bold text-white">{{ ticker }} <span class="text-sm font-normal text-slate-400">| {{ result.price | format_currency }}</span></div>
+                <div class="text-2xl font-bold text-white">{{ ticker }} <span class="text-sm font-normal text-slate-400">| {{ format_currency(result.price) }}</span></div>
             </div>
         </header>
 
@@ -229,15 +232,15 @@ class ReportGenerator:
                 <div class="space-y-3">
                     <div class="flex justify-between text-sm">
                         <span>Stop Loss</span>
-                        <span class="text-rose-400 font-bold">{{ result.levels.stop_loss | format_currency }}</span>
+                        <span class="text-rose-400 font-bold">{{ format_currency(result.strategy.stop_loss) if result.strategy.stop_loss else 'N/A' }}</span>
                     </div>
                     <div class="flex justify-between text-sm font-bold text-emerald-400">
                         <span>Obj. Corto</span>
-                        <span>{{ result.levels.take_profits.short_term | format_currency }}</span>
+                        <span>{{ format_currency(result.strategy.sell_levels.short_term) if result.strategy.sell_levels else 'N/A' }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span>Obj. Analistas</span>
-                        <span>{{ result.levels.take_profits.analysts | format_currency }}</span>
+                        <span>{{ format_currency(result.strategy.sell_levels.long_term) if result.strategy.sell_levels else 'N/A' }}</span>
                     </div>
                 </div>
             </div>
@@ -268,24 +271,32 @@ class ReportGenerator:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
             
-        template = Template(self._get_template())
-        
-        # Helper for currency formatting
+        # Helper para formatear moneda
         def format_currency(value):
-            if value is None: return "N/A"
+            if value is None: 
+                return "N/A"
             try:
                 val = float(value)
                 return f"${val:,.2f}"
             except:
                 return str(value)
-
-        template.globals['format_currency'] = format_currency
+        
+        # Pre-procesar datos para evitar necesidad de filtros en template
+        processed_result = self.result.copy()
+        if isinstance(processed_result.get('price'), (int, float)):
+            processed_result['price_formatted'] = format_currency(processed_result.get('price'))
+        if isinstance(processed_result.get('strategy', {}).get('stop_loss'), (int, float)):
+            processed_result['strategy'] = processed_result.get('strategy', {}).copy()
+            processed_result['strategy']['stop_loss_formatted'] = format_currency(processed_result['strategy'].get('stop_loss'))
+        
+        template = Template(self._get_template())
         
         html_output = template.render(
             ticker=self.ticker,
-            result=self.result,
+            result=processed_result,
             timestamp=self.timestamp,
-            confidence=abs(self.result['strategy']['confidence'])
+            confidence=abs(self.result['strategy']['confidence']),
+            format_currency=format_currency  # Pasar como función disponible en template
         )
         
         filepath = os.path.join(output_dir, self.filename)
