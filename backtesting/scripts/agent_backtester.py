@@ -18,6 +18,12 @@ from pathlib import Path
 import logging
 from typing import List, Dict, Tuple, Optional
 import json
+import sys
+from pathlib import Path
+
+# Agregar directorio root al Python path para importar agent.py
+root_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(root_dir))
 
 from backtest_data_manager import BacktestDataManager
 from backtest_portfolio import BacktestPortfolio
@@ -1292,7 +1298,9 @@ if __name__ == "__main__":
         start_date=args.start,
         end_date=args.end,
         initial_cash=args.capital,
-        analysis_type=analysis_type
+        analysis_type=analysis_type,
+        data_dir="../data",
+        results_dir="../results"
     )
     
     results = backtester.run_backtest()
