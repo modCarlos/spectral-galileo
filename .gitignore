@@ -1,21 +1,39 @@
-
+# System files
 .DS_Store
-__pycache__/agent.cpython-314.pyc
-__pycache__/backtest.cpython-314.pyc
-__pycache__/data_manager.cpython-314.pyc
-__pycache__/indicators.cpython-314.pyc
-__pycache__/llm_agent.cpython-314.pyc
-__pycache__/macro_analysis.cpython-314.pyc
-__pycache__/market_data.cpython-314.pyc
-__pycache__/portfolio_manager.cpython-314.pyc
-__pycache__/sentiment_analysis.cpython-314.pyc
-__pycache__/watchlist_manager.cpython-314.pyc
-tests/__pycache__/__init__.cpython-314.pyc
-tests/__pycache__/test_agent_scoring.cpython-314-pytest-9.0.2.pyc
-tests/__pycache__/test_indicators.cpython-314-pytest-9.0.2.pyc
-tests/__pycache__/test_macro_analysis.cpython-314-pytest-9.0.2.pyc
-tests/__pycache__/test_portfolio_manager.cpython-314-pytest-9.0.2.pyc
-tests/__pycache__/test_sentiment_hybrid.cpython-314-pytest-9.0.2.pyc
-__pycache__/report_generator.cpython-314.pyc
-tests/__pycache__/test_agent_comprehensive.cpython-314.pyc
-tests/__pycache__/test_agent_scoring.cpython-314.pyc
+
+# Python compiled files
+*.pyc
+*.pyo
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Backtesting Data & Results
+backtest_data/*.csv
+backtest_results/
+.backtest_cache/
+backtesting/data/*.csv
+backtesting/data/**/*.csv
+backtesting/results/*
+backtesting/optimization_results/*
+!backtesting/results/.gitkeep
+!backtesting/optimization_results/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+validation_run_*.log
+
+# Cache
+.pytest_cache/
+.coverage
