@@ -237,6 +237,169 @@ def run_scanner(is_short_term=False, generate_html=False):
         except Exception as e:
             print(f"{Fore.YELLOW}⚠️ Error generando HTMLs: {str(e)}{Style.RESET_ALL}\n")
 
+def handle_alerts_command(command: str, dry_run: bool = False):
+    """
+    Maneja comandos del sistema de alertas.
+    
+    Args:
+        command: 'start', 'stop', 'status', 'test', 'config'
+        dry_run: Modo dry-run para testing
+    """
+    from alerts.state import is_daemon_running, get_daemon_pid, get_stats
+    from alerts.config import load_config
+    from alerts.notifier import send_test_notification
+    from alerts.market_hours import get_market_status
+    import subprocess
+    import os
+    import signal
+    import json
+    
+    if command == 'start':
+        # Iniciar daemon
+        if is_daemon_running():
+            print(f"{Fore.YELLOW}⚠️  El daemon ya está corriendo (PID: {get_daemon_pid()}){Style.RESET_ALL}")
+            return
+        
+        print(f"{Fore.CYAN}🚀 Iniciando sistema de alertas...{Style.RESET_ALL}")
+        
+        # Ejecutar daemon en background
+        python_exec = sys.executable
+        daemon_script = os.path.join(os.path.dirname(__file__), 'alerts', 'daemon.py')
+        
+        cmd = [python_exec, daemon_script]
+        if dry_run:
+            cmd.append('--dry-run')
+            print(f"{Fore.YELLOW}   [DRY RUN MODE - No enviará notificaciones reales]{Style.RESET_ALL}")
+        
+        # Iniciar proceso en background
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True
+        )
+        
+        # Esperar un momento para verificar que inició
+        import time
+        time.sleep(2)
+        
+        if is_daemon_running():
+            pid = get_daemon_pid()
+            config = load_config()
+            print(f"{Fore.GREEN}✅ Daemon iniciado correctamente (PID: {pid}){Style.RESET_ALL}")
+            print(f"{Fore.CYAN}📊 Configuración:{Style.RESET_ALL}")
+            print(f"   - Intervalo: {config['interval_minutes']} minutos")
+            print(f"   - Modo: {config['analysis_mode']}")
+            print(f"   - Confianza mínima: {config['min_confidence']}")
+            print(f"   - Estado del mercado: {get_market_status()}")
+            print(f"\n{Fore.GREEN}💡 Usa 'python main.py --alerts status' para ver el estado{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}💡 Usa 'python main.py --alerts stop' para detener{Style.RESET_ALL}\n")
+        else:
+            print(f"{Fore.RED}❌ Error iniciando daemon. Ver logs/alerts.log{Style.RESET_ALL}")
+    
+    elif command == 'stop':
+        # Detener daemon
+        if not is_daemon_running():
+            print(f"{Fore.YELLOW}⚠️  El daemon no está corriendo{Style.RESET_ALL}")
+            return
+        
+        pid = get_daemon_pid()
+        print(f"{Fore.CYAN}🛑 Deteniendo daemon (PID: {pid})...{Style.RESET_ALL}")
+        
+        try:
+            os.kill(pid, signal.SIGTERM)
+            
+            # Esperar a que termine
+            import time
+            for _ in range(5):
+                time.sleep(1)
+                if not is_daemon_running():
+                    break
+            
+            if not is_daemon_running():
+                print(f"{Fore.GREEN}✅ Daemon detenido correctamente{Style.RESET_ALL}\n")
+            else:
+                print(f"{Fore.YELLOW}⚠️  Daemon no responde, forzando terminación...{Style.RESET_ALL}")
+                os.kill(pid, signal.SIGKILL)
+                print(f"{Fore.GREEN}✅ Daemon terminado{Style.RESET_ALL}\n")
+        
+        except ProcessLookupError:
+            print(f"{Fore.YELLOW}⚠️  Proceso no encontrado, limpiando estado...{Style.RESET_ALL}")
+            from alerts.state import remove_daemon_pid
+            remove_daemon_pid()
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error deteniendo daemon: {e}{Style.RESET_ALL}")
+    
+    elif command == 'status':
+        # Mostrar estado del sistema
+        stats = get_stats()
+        config = load_config()
+        
+        print(f"\n{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}📡 ESTADO DEL SISTEMA DE ALERTAS{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}\n")
+        
+        # Estado del daemon
+        if stats['daemon_running']:
+            pid = get_daemon_pid()
+            print(f"🟢 Daemon: {Fore.GREEN}CORRIENDO{Style.RESET_ALL} (PID: {pid})")
+        else:
+            print(f"🔴 Daemon: {Fore.RED}DETENIDO{Style.RESET_ALL}")
+        
+        print(f"📊 Estado del mercado: {get_market_status()}")
+        print()
+        
+        # Estadísticas
+        print(f"{Fore.CYAN}📈 ESTADÍSTICAS:{Style.RESET_ALL}")
+        print(f"   Escaneos realizados: {stats['total_scans']}")
+        print(f"   Alertas enviadas: {stats['total_alerts_sent']}")
+        print(f"   Alertas esta hora: {stats['alerts_this_hour']}/{config['max_alerts_per_hour']}")
+        print(f"   Tickers en watchlist: {stats['watchlist_count']}")
+        print(f"   Posiciones en portafolio: {stats['portfolio_count']}")
+        print(f"   Tickers en historial: {stats['tickers_in_history']}")
+        
+        if stats['last_scan']:
+            from datetime import datetime
+            last_scan = datetime.fromisoformat(stats['last_scan'])
+            print(f"   Último escaneo: {last_scan.strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            print(f"   Último escaneo: Nunca")
+        print()
+        
+        # Configuración
+        print(f"{Fore.CYAN}⚙️  CONFIGURACIÓN:{Style.RESET_ALL}")
+        print(f"   Intervalo: {config['interval_minutes']} minutos")
+        print(f"   Modo de análisis: {config['analysis_mode']}")
+        print(f"   Confianza mínima:")
+        print(f"      - FUERTE COMPRA: {config['min_confidence']['strong_buy']}%")
+        print(f"      - COMPRA: {config['min_confidence']['buy']}%")
+        print(f"   Cooldown: {config['cooldown_hours']} horas")
+        print(f"   Sonido: {'✅ Activado' if config['sound_enabled'] else '❌ Desactivado'}")
+        print(f"   Solo horario de mercado: {'✅ Sí' if config['market_hours_only'] else '❌ No'}")
+        print()
+        
+        print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}\n")
+    
+    elif command == 'test':
+        # Enviar notificación de prueba
+        print(f"{Fore.CYAN}📬 Enviando notificación de prueba...{Style.RESET_ALL}")
+        success = send_test_notification()
+        
+        if success:
+            print(f"{Fore.GREEN}✅ Notificación enviada correctamente{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}💡 Revisa el Notification Center de macOS{Style.RESET_ALL}\n")
+        else:
+            print(f"{Fore.RED}❌ Error enviando notificación{Style.RESET_ALL}\n")
+    
+    elif command == 'config':
+        # Mostrar configuración completa
+        config = load_config()
+        print(f"\n{Fore.CYAN}⚙️  CONFIGURACIÓN COMPLETA{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}\n")
+        print(json.dumps(config, indent=2))
+        print(f"\n{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}📝 Edita: config/alert_config.json{Style.RESET_ALL}\n")
+
 def main():
     parser = argparse.ArgumentParser(
         description='🤖 Agente de Análisis Financiero Inteligente - Análisis técnico, fundamental, macro y cualitativo',
@@ -275,6 +438,14 @@ EJEMPLOS DE USO:
   python main.py -uw AAPL                Eliminar de watchlist
   python main.py -ws                     Analizar watchlist
   python main.py -ws -st                 Escanear watchlist (Corto Plazo)
+
+🔔 ALERTAS (Sistema Automático):
+  python main.py --alerts start          Iniciar monitoreo automático de watchlist
+  python main.py --alerts stop           Detener sistema de alertas
+  python main.py --alerts status         Ver estado y estadísticas
+  python main.py --alerts test           Enviar notificación de prueba
+  python main.py --alerts config         Ver configuración completa
+  python main.py --alerts start --dry-run  Modo prueba (sin notificaciones)
 SISTEMA DE EXCELENCIA 2.0:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -326,7 +497,18 @@ SISTEMA DE EXCELENCIA 2.0:
     parser.add_argument('--ai', type=str, metavar='TICKER',
                         help='Análisis con IA (requiere GEMINI_API_KEY)')
     
+    # Sistema de Alertas
+    parser.add_argument('--alerts', type=str, choices=['start', 'stop', 'status', 'test', 'config'],
+                        help='Control del sistema de alertas')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='Modo dry-run (para testing de alertas)')
+    
     args = parser.parse_args()
+    
+    # Procesar comando de alertas PRIMERO (antes de otros comandos)
+    if args.alerts:
+        handle_alerts_command(args.alerts, args.dry_run)
+        return
     
     # Procesar comandos
     if args.add:
