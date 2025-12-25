@@ -1,0 +1,35 @@
+{
+    "enabled": true,
+    "interval_minutes": 30,
+    "market_hours_only": true,
+    "analysis_mode": "short_term",
+    "alert_types": {
+        "strong_buy": true,
+        "buy": true,
+        "sell": true,
+        "rm_triggered": true
+    },
+    "min_confidence": {
+        "strong_buy": 70,
+        "buy": 60
+    },
+    "cooldown_hours": 4,
+    "max_alerts_per_hour": 5,
+    "sound_enabled": false,
+    "market_hours": {
+        "timezone": "America/New_York",
+        "open": "09:30",
+        "close": "16:00",
+        "days": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday"
+        ]
+    },
+    "sources": {
+        "watchlist": true,
+        "portfolio": true
+    }
+}

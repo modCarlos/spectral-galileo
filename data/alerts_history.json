@@ -1,0 +1,12 @@
+{
+    "TEST_TICKER": {
+        "timestamp": "2025-12-25T01:06:26.798424",
+        "type": "STRONG_BUY",
+        "confidence": 85
+    },
+    "TEST_COOLDOWN": {
+        "timestamp": "2025-12-25T01:07:37.554741",
+        "type": "STRONG_BUY",
+        "confidence": 75
+    }
+}
