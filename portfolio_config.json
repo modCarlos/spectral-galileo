@@ -1,0 +1,5 @@
+{
+    "account_value": 100000.0,
+    "max_risk_per_trade": 0.02,
+    "max_position_allocation": 0.2
+}
