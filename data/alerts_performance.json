@@ -1,0 +1,51 @@
+{
+  "generated_at": "2025-12-25T12:15:27.767502",
+  "total_alerts": 2,
+  "pending_evaluation": 2,
+  "performance_7d": {
+    "evaluated": 0,
+    "wins": 0,
+    "losses": 0,
+    "win_rate": 0,
+    "avg_return": 0,
+    "avg_win": 0,
+    "avg_loss": 0,
+    "best_trade": null,
+    "worst_trade": null
+  },
+  "performance_30d": {
+    "evaluated": 0,
+    "wins": 0,
+    "losses": 0,
+    "win_rate": 0,
+    "avg_return": 0,
+    "avg_win": 0,
+    "avg_loss": 0,
+    "best_trade": null,
+    "worst_trade": null
+  },
+  "by_verdict": {},
+  "by_ticker": {},
+  "by_confidence": {
+    "90-100%": {
+      "count": 0,
+      "win_rate": 0
+    },
+    "80-89%": {
+      "count": 0,
+      "win_rate": 0
+    },
+    "70-79%": {
+      "count": 0,
+      "win_rate": 0
+    },
+    "60-69%": {
+      "count": 0,
+      "win_rate": 0
+    },
+    "<60%": {
+      "count": 0,
+      "win_rate": 0
+    }
+  }
+}

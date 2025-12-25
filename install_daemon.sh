@@ -9,6 +9,10 @@ PLIST_NAME="com.spectral-galileo.alerts.plist"
 PLIST_SOURCE="$REPO_DIR/$PLIST_NAME"
 PLIST_DEST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 
+TRACKER_PLIST_NAME="com.spectral-galileo.tracker-updater.plist"
+TRACKER_PLIST_SOURCE="$REPO_DIR/$TRACKER_PLIST_NAME"
+TRACKER_PLIST_DEST="$HOME/Library/LaunchAgents/$TRACKER_PLIST_NAME"
+
 echo "======================================"
 echo "Instalando Spectral Galileo Alert Daemon"
 echo "======================================"
@@ -51,9 +55,26 @@ if launchctl list | grep -q "com.spectral-galileo.alerts"; then
     echo "  • Se reinicia automáticamente si falla"
     echo "  • Solo ejecuta durante horario de mercado"
     echo ""
+    
+    # Instalar tracker updater
+    echo "Instalando tracker updater..."
+    
+    if [ -f "$TRACKER_PLIST_SOURCE" ]; then
+        cp "$TRACKER_PLIST_SOURCE" "$TRACKER_PLIST_DEST"
+        launchctl unload "$TRACKER_PLIST_DEST" 2>/dev/null || true
+        launchctl load "$TRACKER_PLIST_DEST"
+        
+        if launchctl list | grep -q "com.spectral-galileo.tracker-updater"; then
+            echo "✅ Tracker updater instalado (se ejecuta diariamente a las 6:00 PM)"
+        fi
+    fi
+    
+    echo ""
     echo "Comandos útiles:"
     echo "  • Ver logs: tail -f $REPO_DIR/logs/alerts.log"
     echo "  • Estado: python $REPO_DIR/main.py --alerts status"
+    echo "  • Reporte: python $REPO_DIR/main.py --alerts report"
+    echo "  • Actualizar: python $REPO_DIR/main.py --alerts update"
     echo "  • Reiniciar: launchctl unload $PLIST_DEST && launchctl load $PLIST_DEST"
     echo "  • Desinstalar: bash $REPO_DIR/uninstall_daemon.sh"
     echo ""

@@ -399,6 +399,139 @@ def handle_alerts_command(command: str, dry_run: bool = False):
         print(json.dumps(config, indent=2))
         print(f"\n{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
         print(f"{Fore.CYAN}📝 Edita: config/alert_config.json{Style.RESET_ALL}\n")
+    
+    elif command == 'report':
+        # Mostrar reporte de performance
+        from alerts.tracker import calculate_performance_metrics, load_tracker_data, get_pending_alerts
+        
+        print(f"\n{Fore.CYAN}📊 REPORTE DE PERFORMANCE DE ALERTAS{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}\n")
+        
+        try:
+            metrics = calculate_performance_metrics()
+            
+            if 'error' in metrics:
+                print(f"{Fore.YELLOW}⚠️  {metrics['error']}{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}💡 Las alertas se registrarán automáticamente cuando el daemon esté activo{Style.RESET_ALL}\n")
+                return
+            
+            # Resumen general
+            print(f"{Fore.YELLOW}📈 RESUMEN GENERAL{Style.RESET_ALL}")
+            print(f"   Total alertas: {metrics['total_alerts']}")
+            print(f"   Pendientes de evaluación: {metrics['pending_evaluation']}")
+            
+            # Performance 7 días
+            perf_7d = metrics['performance_7d']
+            if perf_7d['evaluated'] > 0:
+                print(f"\n{Fore.YELLOW}📅 PERFORMANCE 7 DÍAS{Style.RESET_ALL}")
+                print(f"   Evaluadas: {perf_7d['evaluated']}")
+                print(f"   Wins: {perf_7d['wins']} | Losses: {perf_7d['losses']}")
+                
+                # Color para win rate
+                wr_color = Fore.GREEN if perf_7d['win_rate'] >= 50 else Fore.RED
+                print(f"   Win Rate: {wr_color}{perf_7d['win_rate']}%{Style.RESET_ALL}")
+                
+                # Color para avg return
+                ar_color = Fore.GREEN if perf_7d['avg_return'] > 0 else Fore.RED
+                print(f"   Avg Return: {ar_color}{perf_7d['avg_return']:+.2f}%{Style.RESET_ALL}")
+                
+                if perf_7d['avg_win'] > 0:
+                    print(f"   Avg Win: {Fore.GREEN}{perf_7d['avg_win']:+.2f}%{Style.RESET_ALL}")
+                if perf_7d['avg_loss'] < 0:
+                    print(f"   Avg Loss: {Fore.RED}{perf_7d['avg_loss']:+.2f}%{Style.RESET_ALL}")
+                
+                if perf_7d['best_trade']:
+                    print(f"   Mejor: {perf_7d['best_trade']['ticker']} ({Fore.GREEN}{perf_7d['best_trade']['return']:+.2f}%{Style.RESET_ALL})")
+                if perf_7d['worst_trade']:
+                    print(f"   Peor: {perf_7d['worst_trade']['ticker']} ({Fore.RED}{perf_7d['worst_trade']['return']:+.2f}%{Style.RESET_ALL})")
+            
+            # Performance 30 días
+            perf_30d = metrics['performance_30d']
+            if perf_30d['evaluated'] > 0:
+                print(f"\n{Fore.YELLOW}📅 PERFORMANCE 30 DÍAS{Style.RESET_ALL}")
+                print(f"   Evaluadas: {perf_30d['evaluated']}")
+                print(f"   Wins: {perf_30d['wins']} | Losses: {perf_30d['losses']}")
+                
+                wr_color = Fore.GREEN if perf_30d['win_rate'] >= 50 else Fore.RED
+                print(f"   Win Rate: {wr_color}{perf_30d['win_rate']}%{Style.RESET_ALL}")
+                
+                ar_color = Fore.GREEN if perf_30d['avg_return'] > 0 else Fore.RED
+                print(f"   Avg Return: {ar_color}{perf_30d['avg_return']:+.2f}%{Style.RESET_ALL}")
+                
+                if perf_30d['best_trade']:
+                    print(f"   Mejor: {perf_30d['best_trade']['ticker']} ({Fore.GREEN}{perf_30d['best_trade']['return']:+.2f}%{Style.RESET_ALL})")
+                if perf_30d['worst_trade']:
+                    print(f"   Peor: {perf_30d['worst_trade']['ticker']} ({Fore.RED}{perf_30d['worst_trade']['return']:+.2f}%{Style.RESET_ALL})")
+            
+            # Por veredicto
+            if metrics['by_verdict']:
+                print(f"\n{Fore.YELLOW}📋 POR VEREDICTO (7d){Style.RESET_ALL}")
+                for verdict, data in metrics['by_verdict'].items():
+                    wr_color = Fore.GREEN if data['win_rate'] >= 50 else Fore.RED
+                    print(f"   {verdict}: {data['count']} alertas | Win Rate: {wr_color}{data['win_rate']}%{Style.RESET_ALL}")
+            
+            # Por ticker (top 5)
+            if metrics['by_ticker']:
+                print(f"\n{Fore.YELLOW}📈 TOP TICKERS (7d){Style.RESET_ALL}")
+                sorted_tickers = sorted(metrics['by_ticker'].items(), key=lambda x: x[1]['avg_return'], reverse=True)
+                for ticker, data in sorted_tickers[:5]:
+                    ar_color = Fore.GREEN if data['avg_return'] > 0 else Fore.RED
+                    wr_color = Fore.GREEN if data['win_rate'] >= 50 else Fore.RED
+                    print(f"   {ticker}: {ar_color}{data['avg_return']:+.2f}%{Style.RESET_ALL} | WR: {wr_color}{data['win_rate']}%{Style.RESET_ALL} ({data['count']} alertas)")
+            
+            # Por confianza
+            if any(v['count'] > 0 for v in metrics['by_confidence'].values()):
+                print(f"\n{Fore.YELLOW}🎯 POR NIVEL DE CONFIANZA (7d){Style.RESET_ALL}")
+                for bucket, data in metrics['by_confidence'].items():
+                    if data['count'] > 0:
+                        wr_color = Fore.GREEN if data['win_rate'] >= 50 else Fore.RED
+                        print(f"   {bucket}: {data['count']} alertas | Win Rate: {wr_color}{data['win_rate']}%{Style.RESET_ALL}")
+            
+            # Alertas pendientes
+            pending = get_pending_alerts()
+            if pending:
+                print(f"\n{Fore.YELLOW}⏳ ALERTAS PENDIENTES{Style.RESET_ALL}")
+                print(f"   {len(pending)} alertas esperando evaluación completa")
+                print(f"{Fore.CYAN}   💡 Usa 'python main.py --alerts update' para actualizar{Style.RESET_ALL}")
+            
+            print(f"\n{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}📝 Archivo: data/alerts_performance.json{Style.RESET_ALL}\n")
+        
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}\n")
+    
+    elif command == 'update':
+        # Actualizar performance de alertas pendientes
+        from alerts.tracker import update_alert_performance, get_pending_alerts
+        
+        print(f"\n{Fore.CYAN}🔄 ACTUALIZANDO PERFORMANCE DE ALERTAS{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}\n")
+        
+        pending_before = len(get_pending_alerts())
+        
+        if pending_before == 0:
+            print(f"{Fore.YELLOW}⚠️  No hay alertas pendientes de actualización{Style.RESET_ALL}\n")
+            return
+        
+        print(f"{Fore.YELLOW}Alertas pendientes: {pending_before}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}Descargando datos de precios...{Style.RESET_ALL}\n")
+        
+        try:
+            updated = update_alert_performance()
+            
+            pending_after = len(get_pending_alerts())
+            completed = pending_before - pending_after
+            
+            print(f"{Fore.GREEN}✅ Actualización completada{Style.RESET_ALL}")
+            print(f"   Alertas actualizadas: {updated}")
+            print(f"   Completadas: {completed}")
+            print(f"   Pendientes restantes: {pending_after}")
+            
+            if completed > 0:
+                print(f"\n{Fore.CYAN}💡 Usa 'python main.py --alerts report' para ver el reporte actualizado{Style.RESET_ALL}\n")
+        
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}\n")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -445,6 +578,8 @@ EJEMPLOS DE USO:
   python main.py --alerts status         Ver estado y estadísticas
   python main.py --alerts test           Enviar notificación de prueba
   python main.py --alerts config         Ver configuración completa
+  python main.py --alerts report         Ver reporte de performance de alertas
+  python main.py --alerts update         Actualizar performance de alertas pendientes
   python main.py --alerts start --dry-run  Modo prueba (sin notificaciones)
 SISTEMA DE EXCELENCIA 2.0:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -498,7 +633,7 @@ SISTEMA DE EXCELENCIA 2.0:
                         help='Análisis con IA (requiere GEMINI_API_KEY)')
     
     # Sistema de Alertas
-    parser.add_argument('--alerts', type=str, choices=['start', 'stop', 'status', 'test', 'config'],
+    parser.add_argument('--alerts', type=str, choices=['start', 'stop', 'status', 'test', 'config', 'report', 'update'],
                         help='Control del sistema de alertas')
     parser.add_argument('--dry-run', action='store_true',
                         help='Modo dry-run (para testing de alertas)')

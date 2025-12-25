@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Identificador único del servicio -->
+    <key>Label</key>
+    <string>com.spectral-galileo.tracker-updater</string>
+    
+    <!-- Comando a ejecutar -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/carlosfuentes/GitHub/spectral-galileo/venv/bin/python</string>
+        <string>/Users/carlosfuentes/GitHub/spectral-galileo/update_tracker.py</string>
+    </array>
+    
+    <!-- Directorio de trabajo -->
+    <key>WorkingDirectory</key>
+    <string>/Users/carlosfuentes/GitHub/spectral-galileo</string>
+    
+    <!-- Ejecutar diariamente a las 6:00 PM (después del cierre de mercado) -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>18</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    
+    <!-- Logs de salida -->
+    <key>StandardOutPath</key>
+    <string>/Users/carlosfuentes/GitHub/spectral-galileo/logs/tracker_updater.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Users/carlosfuentes/GitHub/spectral-galileo/logs/tracker_updater_error.log</string>
+    
+    <!-- Variables de entorno -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>

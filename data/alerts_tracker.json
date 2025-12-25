@@ -1,0 +1,52 @@
+{
+  "alerts": [
+    {
+      "id": 1,
+      "ticker": "AAPL",
+      "verdict": "FUERTE COMPRA",
+      "confidence": 75,
+      "entry_price": 185.2,
+      "entry_date": "2025-12-25T12:15:18.965666",
+      "details": {
+        "rsi": 28.5
+      },
+      "price_1d": null,
+      "price_7d": null,
+      "price_30d": null,
+      "return_1d": null,
+      "return_7d": null,
+      "return_30d": null,
+      "result_7d": null,
+      "result_30d": null,
+      "last_updated": null,
+      "status": "PENDING"
+    },
+    {
+      "id": 2,
+      "ticker": "NVDA",
+      "verdict": "COMPRA",
+      "confidence": 65,
+      "entry_price": 520.0,
+      "entry_date": "2025-12-25T12:15:19.471675",
+      "details": {
+        "macd": "Bullish"
+      },
+      "price_1d": null,
+      "price_7d": null,
+      "price_30d": null,
+      "return_1d": null,
+      "return_7d": null,
+      "return_30d": null,
+      "result_7d": null,
+      "result_30d": null,
+      "last_updated": null,
+      "status": "PENDING"
+    }
+  ],
+  "stats": {
+    "total_tracked": 2,
+    "pending_evaluation": 2,
+    "evaluated_7d": 0,
+    "evaluated_30d": 0
+  }
+}

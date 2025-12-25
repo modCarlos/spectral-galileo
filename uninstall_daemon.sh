@@ -7,6 +7,9 @@ set -e
 PLIST_NAME="com.spectral-galileo.alerts.plist"
 PLIST_DEST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 
+TRACKER_PLIST_NAME="com.spectral-galileo.tracker-updater.plist"
+TRACKER_PLIST_DEST="$HOME/Library/LaunchAgents/$TRACKER_PLIST_NAME"
+
 echo "======================================"
 echo "Desinstalando Spectral Galileo Alert Daemon"
 echo "======================================"
@@ -39,6 +42,17 @@ if [ -f "$PID_FILE" ]; then
         echo "✅ Daemon detenido (PID: $PID)"
     fi
     rm "$PID_FILE"
+fi
+
+# 4. Desinstalar tracker updater
+if launchctl list | grep -q "com.spectral-galileo.tracker-updater"; then
+    launchctl unload "$TRACKER_PLIST_DEST"
+    echo "✅ Tracker updater descargado"
+fi
+
+if [ -f "$TRACKER_PLIST_DEST" ]; then
+    rm "$TRACKER_PLIST_DEST"
+    echo "✅ Tracker plist eliminado"
 fi
 
 echo ""

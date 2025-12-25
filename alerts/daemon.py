@@ -29,6 +29,7 @@ from alerts.state import (
     increment_alert_count, update_scan_stats, save_daemon_pid,
     remove_daemon_pid, set_daemon_running, get_daemon_pid, is_daemon_running
 )
+from alerts.tracker import record_alert_for_tracking
 
 
 # Configurar logging
@@ -256,6 +257,16 @@ class AlertDaemon:
                 if success:
                     record_alert(ticker, alert_type, confidence)
                     increment_alert_count()
+                    
+                    # 🆕 Registrar en tracker para seguimiento de performance
+                    record_alert_for_tracking(
+                        ticker=ticker,
+                        verdict=verdict,
+                        confidence=confidence,
+                        price=price,
+                        details=details
+                    )
+                    
                     return True
             else:
                 logger.info(f"   [DRY RUN] No se envió notificación")
