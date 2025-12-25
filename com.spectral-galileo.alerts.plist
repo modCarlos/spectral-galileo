@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Identificador único del servicio -->
+    <key>Label</key>
+    <string>com.spectral-galileo.alerts</string>
+    
+    <!-- Comando a ejecutar -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/carlosfuentes/GitHub/spectral-galileo/venv/bin/python</string>
+        <string>/Users/carlosfuentes/GitHub/spectral-galileo/main.py</string>
+        <string>--alerts</string>
+        <string>start</string>
+    </array>
+    
+    <!-- Directorio de trabajo -->
+    <key>WorkingDirectory</key>
+    <string>/Users/carlosfuentes/GitHub/spectral-galileo</string>
+    
+    <!-- Iniciar al arrancar el sistema -->
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <!-- Reiniciar si se detiene inesperadamente -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    
+    <!-- Ejecutar solo en días laborables (Lunes-Viernes) -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Weekday</key>
+            <integer>1</integer>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key>
+            <integer>2</integer>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key>
+            <integer>3</integer>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key>
+            <integer>4</integer>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key>
+            <integer>5</integer>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+    </array>
+    
+    <!-- Logs de salida -->
+    <key>StandardOutPath</key>
+    <string>/Users/carlosfuentes/GitHub/spectral-galileo/logs/alerts_stdout.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Users/carlosfuentes/GitHub/spectral-galileo/logs/alerts_stderr.log</string>
+    
+    <!-- Variables de entorno (opcional) -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
