@@ -248,30 +248,33 @@ EJEMPLOS DE USO:
 
 📊 ANÁLISIS:
   python main.py AAPL                    Análisis Estructural (Horizonte: 3-5 años)
-  python main.py --short-term AAPL       Análisis Táctico (Horizonte: 3-6 meses) + ADX/Trend Gate
-  python main.py --scan                  Escanear Top 25 (Largo Plazo)
-  python main.py --scan --short-term     Escanear con enfoque táctico (Corto Plazo)
+  python main.py AAPL -st                Análisis Táctico (Horizonte: 3-6 meses) + ADX/Trend Gate
+  python main.py -s                      Escanear Top 25 (Largo Plazo)
+  python main.py -s -st                  Escanear con enfoque táctico (Corto Plazo)
 
 💼 PORTAFOLIO:
-  python main.py --scan-portfolio        Ver estado de tu portafolio (Consolidación)
-  python main.py --add AAPL              Agregar AAPL al precio de mercado actual
-  python main.py --add AAPL 150.50       Agregar AAPL a $150.50 personalizado
-  python main.py --remove AAPL           Eliminar última entrada de AAPL
-  python main.py --remove-all AAPL       Eliminar todas las entradas de AAPL
-  python main.py --remove-all            Vaciar portafolio (con confirmación)
+  python main.py -p                      Ver estado de tu portafolio
+  python main.py -rm                     Verificar Stop Loss y Take Profit
+  python main.py -a AAPL                 Agregar AAPL al precio de mercado
+  python main.py -a AAPL 150.50          Agregar AAPL a $150.50 personalizado
+  python main.py -aa AAPL                Analizar y agregar con RM automático
+  python main.py -aa AAPL -st            Agregar con RM para corto plazo
+  python main.py -r AAPL                 Eliminar última entrada de AAPL
+  python main.py -ra AAPL                Eliminar todas las entradas de AAPL
+  python main.py -ra                     Vaciar portafolio (con confirmación)
 
 📈 BACKTESTING:
-  python main.py --backtest NVDA         Simular estrategia en período reciente
-  python main.py --backtest NVDA 2024-01-01 2024-12-31     Backtest período custom
+  python main.py -b NVDA                 Simular estrategia en período reciente
+  python main.py -b NVDA 2024-01-01 2024-12-31     Backtest período custom
 
 🤖 ANÁLISIS CON IA:
   python main.py --ai AAPL               Análisis profundo generativo (Requiere GEMINI_API_KEY)
 
 👀 WATCHLIST:
-  python main.py --watch AAPL            Agregar acción a favoritos
-  python main.py --unwatch AAPL          Eliminar de favoritos
-  python main.py --watchlist             Analizar acciones en seguimiento
-  python main.py --scan --watchlist      Escanear favoritos (Atajo)
+  python main.py -w AAPL                 Agregar acción a watchlist
+  python main.py -uw AAPL                Eliminar de watchlist
+  python main.py -ws                     Analizar watchlist
+  python main.py -ws -st                 Escanear watchlist (Corto Plazo)
 SISTEMA DE EXCELENCIA 2.0:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -288,41 +291,40 @@ SISTEMA DE EXCELENCIA 2.0:
     parser.add_argument('ticker', type=str, nargs='?', help='Símbolo de la acción a analizar (ej. AAPL)')
     
     # Escáner de Mercado
-    parser.add_argument('--scan', '--reviewSP500', action='store_true', 
-                        help='Escanear las Top 25 empresas del S&P 500')
+    parser.add_argument('-s', '--scan', action='store_true', 
+                        help='Escanear Top 25 del mercado')
+    parser.add_argument('-st', '--short-term', action='store_true',
+                        help='Modo corto plazo (3-6 meses). Combina con cualquier comando')
     
     # Watchlist
-    parser.add_argument('--watchlist', '--favs', action='store_true',
-                        help='Escanear acciones en mi watchlist')
-    parser.add_argument('--watch', type=str, metavar='TICKER',
-                        help='Agregar acción a la watchlist')
-    parser.add_argument('--unwatch', type=str, metavar='TICKER',
-                        help='Eliminar acción de la watchlist')
+    parser.add_argument('-w', '--watch', type=str, metavar='TICKER',
+                        help='Agregar ticker a watchlist')
+    parser.add_argument('-uw', '--unwatch', type=str, metavar='TICKER',
+                        help='Quitar ticker de watchlist')
+    parser.add_argument('-ws', '--watchlist', action='store_true',
+                        help='Escanear mi watchlist')
     
     # Gestión de Portafolio
-    parser.add_argument('--add', type=str, nargs='+', metavar='TICKER [PRICE]',
-                        help='Agregar una acción al portafolio (ej. --add AAPL o --add AAPL 150.50)')
-    parser.add_argument('--scan-portfolio', '--my-stocks', action='store_true',
-                        help='Analizar mi portafolio guardado')
-    parser.add_argument('--remove', type=str, metavar='TICKER',
-                        help='Eliminar última entrada de una acción del portafolio')
-    parser.add_argument('--remove-all', type=str, nargs='?', const='ALL', metavar='TICKER',
-                        help='Eliminar todas las entradas de una acción (sin TICKER = vaciar portafolio)')
+    parser.add_argument('-a', '--add', type=str, nargs='+', metavar='TICKER [PRICE]',
+                        help='Agregar al portafolio (ej. -a AAPL o -a AAPL 150.50)')
+    parser.add_argument('-aa', '--add-auto', type=str, metavar='TICKER',
+                        help='Analizar y agregar con RM automático')
+    parser.add_argument('-p', '--portfolio', action='store_true',
+                        help='Analizar mi portafolio')
+    parser.add_argument('-r', '--remove', type=str, metavar='TICKER',
+                        help='Quitar última entrada de ticker')
+    parser.add_argument('-ra', '--remove-all', type=str, nargs='?', const='ALL', metavar='TICKER',
+                        help='Quitar todas las entradas (sin TICKER = vaciar todo)')
+    parser.add_argument('-rm', '--check-rm', action='store_true',
+                        help='Verificar Stop Loss y Take Profit')
     
-    # Backtesting
-    parser.add_argument('--backtest', type=str, nargs='+', metavar='TICKER [START] [END]',
-                        help='Backtesting simple (ej. --backtest NVDA 2025-01-01 2025-12-21)')
-    
-    # Report generation
+    # Otras opciones
+    parser.add_argument('-b', '--backtest', type=str, nargs='+', metavar='TICKER [START] [END]',
+                        help='Backtesting (ej. -b NVDA 2025-01-01 2025-12-21)')
     parser.add_argument('--html', action='store_true',
-                        help='Generar reporte HTML del análisis (se guardará en ./reports/)')
-    
-    parser.add_argument('--short-term', action='store_true',
-                        help='Análisis optimizado para el corto plazo (3-6 meses)')
-    
-    # Análisis con IA
+                        help='Generar reporte HTML en ./reports/')
     parser.add_argument('--ai', type=str, metavar='TICKER',
-                        help='Análisis potenciado por IA con Gemini (requiere GEMINI_API_KEY)')
+                        help='Análisis con IA (requiere GEMINI_API_KEY)')
     
     args = parser.parse_args()
     
@@ -332,6 +334,53 @@ SISTEMA DE EXCELENCIA 2.0:
         price = args.add[1] if len(args.add) > 1 else None
         msg = portfolio_manager.add_stock(ticker, price)
         print(f"\n{Fore.GREEN}{msg}{Style.RESET_ALL}\n")
+    
+    elif args.add_auto:
+        # Phase 4C: Auto-add with RM from analysis
+        ticker = args.add_auto.upper()
+        print(f"\n{Fore.CYAN}Analizando {ticker} para agregar con RM automático...{Style.RESET_ALL}\n")
+        
+        try:
+            agent = FinancialAgent(ticker, is_short_term=args.short_term)
+            results = agent.run_analysis()
+            
+            # Extract RM metrics
+            current_price = results['current_price']
+            rm = results.get('risk_management', {})
+            
+            if not rm:
+                print(f"{Fore.YELLOW}⚠️  No se pudieron calcular métricas de RM para {ticker}{Style.RESET_ALL}")
+                print(f"Agregando sin RM...")
+                msg = portfolio_manager.add_stock(ticker, current_price)
+                print(f"\n{Fore.GREEN}{msg}{Style.RESET_ALL}\n")
+            else:
+                stop_loss = rm.get('stop_loss_price')
+                take_profit = rm.get('take_profit_price')
+                position_size = rm.get('position_size_shares')
+                
+                # Show RM metrics
+                print(f"{Fore.CYAN}📊 Métricas de Risk Management:{Style.RESET_ALL}")
+                print(f"  Precio Actual: ${current_price:.2f}")
+                print(f"  Stop Loss: ${stop_loss:.2f} ({((stop_loss/current_price - 1)*100):.2f}%)")
+                print(f"  Take Profit: ${take_profit:.2f} (+{((take_profit/current_price - 1)*100):.2f}%)")
+                print(f"  Posición Sugerida: {position_size} acciones (${position_size * current_price:,.2f})")
+                print(f"  ATR: ${rm.get('atr', 0):.2f}")
+                print(f"  Risk/Reward: {rm.get('risk_reward_ratio', 0):.2f}:1\n")
+                
+                # Add to portfolio with RM
+                msg = portfolio_manager.add_stock(
+                    ticker=ticker,
+                    price=current_price,
+                    stop_loss=stop_loss,
+                    take_profit=take_profit,
+                    position_size=position_size
+                )
+                print(f"{Fore.GREEN}✅ {msg}{Style.RESET_ALL}\n")
+                
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error al analizar {ticker}: {str(e)}{Style.RESET_ALL}\n")
+            import traceback
+            traceback.print_exc()
         
     elif args.backtest:
         import backtest
@@ -379,8 +428,28 @@ SISTEMA DE EXCELENCIA 2.0:
             # Eliminar todas las entradas de un ticker específico
             msg = portfolio_manager.remove_all_stock(args.remove_all)
             print(f"\n{Fore.YELLOW}{msg}{Style.RESET_ALL}\n")
+    
+    elif args.check_rm:
+        # Phase 4B: Verificar Stop Loss y Take Profit
+        print(f"\n{Fore.CYAN}Verificando Risk Management del Portafolio...{Style.RESET_ALL}\n")
+        alerts = portfolio_manager.check_stop_loss_take_profit()
+        formatted = portfolio_manager.format_rm_alerts(alerts)
+        print(formatted)
+        
+        # Resumen
+        total_sl = len(alerts["stop_loss_hit"])
+        total_tp = len(alerts["take_profit_hit"])
+        total_no_rm = len(alerts["no_rm"])
+        total_active = len(alerts["active"])
+        
+        print(f"\n{Fore.CYAN}RESUMEN:{Style.RESET_ALL}")
+        print(f"  Stop Loss alcanzados: {total_sl}")
+        print(f"  Take Profit alcanzados: {total_tp}")
+        print(f"  Sin Risk Management: {total_no_rm}")
+        print(f"  Posiciones activas: {total_active}")
+        print()
             
-    elif args.scan_portfolio:
+    elif args.portfolio:
         run_portfolio_scanner(is_short_term=args.short_term, generate_html=args.html)
         
     elif args.watchlist or (args.scan and not any([args.add, args.remove, args.remove_all])):
@@ -428,6 +497,47 @@ SISTEMA DE EXCELENCIA 2.0:
                             print(f"\n{Fore.YELLOW}⚠️ No se pudo generar el reporte HTML{Style.RESET_ALL}\n")
                     except Exception as e:
                         print(f"\n{Fore.YELLOW}⚠️ Error generando HTML: {str(e)}{Style.RESET_ALL}\n")
+                
+                # Phase 4C: Show RM metrics and offer to add to portfolio
+                rm = results.get('risk_management', {})
+                if rm:
+                    current_price = results.get('current_price')
+                    stop_loss = rm.get('stop_loss_price')
+                    take_profit = rm.get('take_profit_price')
+                    position_size = rm.get('position_size_shares')
+                    atr = rm.get('atr')
+                    rr_ratio = rm.get('risk_reward_ratio')
+                    
+                    print(f"\n{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
+                    print(f"{Fore.CYAN}📊 MÉTRICAS DE RISK MANAGEMENT{Style.RESET_ALL}")
+                    print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
+                    print(f"  Precio Actual: {Fore.WHITE}${current_price:.2f}{Style.RESET_ALL}")
+                    print(f"  Stop Loss: {Fore.RED}${stop_loss:.2f}{Style.RESET_ALL} ({Fore.RED}{((stop_loss/current_price - 1)*100):.2f}%{Style.RESET_ALL})")
+                    print(f"  Take Profit: {Fore.GREEN}${take_profit:.2f}{Style.RESET_ALL} ({Fore.GREEN}+{((take_profit/current_price - 1)*100):.2f}%{Style.RESET_ALL})")
+                    print(f"  Posición Sugerida: {Fore.WHITE}{position_size} acciones{Style.RESET_ALL} (${Fore.WHITE}{position_size * current_price:,.2f}{Style.RESET_ALL})")
+                    print(f"  ATR: {Fore.WHITE}${atr:.2f}{Style.RESET_ALL}")
+                    print(f"  Risk/Reward: {Fore.WHITE}{rr_ratio:.2f}:1{Style.RESET_ALL}")
+                    
+                    strategy = "Corto Plazo (3-6 meses)" if args.short_term else "Largo Plazo (3-5 años)"
+                    print(f"  Estrategia: {Fore.CYAN}{strategy}{Style.RESET_ALL}")
+                    print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}\n")
+                    
+                    # Ask if user wants to add to portfolio
+                    try:
+                        response = input(f"{Fore.YELLOW}¿Agregar {args.ticker} al portafolio con estos parámetros de RM? (s/n): {Style.RESET_ALL}").strip().lower()
+                        if response in ['s', 'si', 'sí', 'y', 'yes']:
+                            msg = portfolio_manager.add_stock(
+                                ticker=args.ticker,
+                                price=current_price,
+                                stop_loss=stop_loss,
+                                take_profit=take_profit,
+                                position_size=position_size
+                            )
+                            print(f"\n{Fore.GREEN}✅ {msg}{Style.RESET_ALL}\n")
+                        else:
+                            print(f"\n{Fore.CYAN}No se agregó al portafolio.{Style.RESET_ALL}\n")
+                    except (EOFError, KeyboardInterrupt):
+                        print(f"\n{Fore.CYAN}No se agregó al portafolio.{Style.RESET_ALL}\n")
                 
                 print(f"{Fore.GREEN}Análisis Completado.{Style.RESET_ALL}")
         except Exception as e:

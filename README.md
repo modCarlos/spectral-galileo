@@ -40,24 +40,24 @@ pip install -r requirements.txt
 python main.py AAPL
 
 # Escanear mercado (Top 25 S&P 500)
-python main.py --scan
+python main.py -s                # o --scan
 
 # Análisis Corto Plazo (3-6 meses)
-python main.py --short-term AAPL
+python main.py AAPL -st          # o --short-term
 
 # Gestión de portafolio
-python main.py --add AAPL 150.50
-python main.py --scan-portfolio
+python main.py -a AAPL 150.50    # o --add
+python main.py -p                # o --portfolio
 
 # Backtesting (estrategia técnica)
-python main.py --backtest NVDA           # Último año
-python main.py --backtest AAPL 2024-01-01 2024-12-31   # Período custom
+python main.py -b NVDA           # Último año
+python main.py -b AAPL 2024-01-01 2024-12-31   # Período custom
 
 # 🤖 Análisis con IA (requiere GEMINI_API_KEY)
-python main.py --ai AAPL                 # Análisis profundo con Gemini
+python main.py --ai AAPL         # Análisis profundo con Gemini
 
 # Ver ayuda completa
-python main.py --help
+python main.py -h
 ```
 
 > **💡 Análisis con IA**: Usa Gemini API para análisis profundo de noticias y recomendaciones contextuales. Ver [docs/llm_analysis.md](docs/llm_analysis.md) para configuración y precios.
@@ -162,15 +162,20 @@ python -m pytest tests/ --cov=. --cov-report=html
 | Comando | Descripción |
 |---------|-------------|
 | `python main.py TICKER` | Analizar acción individual |
-| `python main.py --scan` | Escanear Top 25 S&P 500 |
-| `python main.py --short-term TICKER` | Análisis optimizado para 3-6 meses |
-| `python main.py --add TICKER [PRICE]` | Agregar al portafolio |
-| `python main.py --scan-portfolio` | Ver estado del portafolio |
-| `python main.py --remove TICKER` | Eliminar última entrada |
-| `python main.py --remove-all TICKER` | Eliminar todas las entradas |
-| `python main.py --backtest TICKER [START] [END]` | Backtesting simple |
+| `python main.py -s` (o `--scan`) | Escanear Top 25 S&P 500 |
+| `python main.py -st` (o `--short-term`) | Modo corto plazo (3-6 meses) |
+| `python main.py -p` (o `--portfolio`) | Ver estado del portafolio |
+| `python main.py -a TICKER` (o `--add`) | Agregar al portafolio |
+| `python main.py -aa TICKER` (o `--add-auto`) | Agregar con Risk Management automático |
+| `python main.py -rm` (o `--check-rm`) | Verificar Stop Loss y Take Profit |
+| `python main.py -r TICKER` (o `--remove`) | Eliminar última entrada |
+| `python main.py -ra TICKER` (o `--remove-all`) | Eliminar todas las entradas |
+| `python main.py -ws` (o `--watchlist`) | Escanear watchlist |
+| `python main.py -w TICKER` (o `--watch`) | Agregar a watchlist |
+| `python main.py -uw TICKER` (o `--unwatch`) | Quitar de watchlist |
+| `python main.py -b TICKER` (o `--backtest`) | Backtesting simple |
 | `python main.py --ai TICKER` | Análisis con IA (Gemini) 🤖 |
-| `python main.py --help` | Ver ayuda completa |
+| `python main.py -h` | Ver ayuda completa |
 
 ## 🔬 Tecnologías
 
