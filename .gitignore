@@ -37,3 +37,5 @@ validation_run_*.log
 # Cache
 .pytest_cache/
 .coverage
+*.pid
+data/alerts_state.json
