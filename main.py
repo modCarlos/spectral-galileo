@@ -76,6 +76,7 @@ def run_portfolio_scanner(is_short_term=False, generate_html=False):
         res = analysis_cache[t]
         curr_price = res['current_price']
         verdict = res['strategy']['verdict']
+        confidence = res['strategy']['confidence']
         
         pnl_pct = ((curr_price - buy_price) / buy_price) * 100
         pnl_str = f"{pnl_pct:+.2f}%"
@@ -87,9 +88,9 @@ def run_portfolio_scanner(is_short_term=False, generate_html=False):
         elif "VENTA" in verdict:
             advice = f"{Fore.GREEN}Tomar Ganancia{Style.RESET_ALL}" if pnl_pct > 0 else f"{Fore.RED}Vender / SL{Style.RESET_ALL}"
             
-        results_list.append([t, f"${buy_price:.2f}", f"${curr_price:.2f}", f"{pnl_col}{pnl_str}{Style.RESET_ALL}", verdict, advice])
+        results_list.append([t, f"${buy_price:.2f}", f"${curr_price:.2f}", f"{pnl_col}{pnl_str}{Style.RESET_ALL}", verdict, f"{confidence:.0f}%", advice])
 
-    headers = ["Ticker", "Compra", "Actual", "P&L", "Veredicto", "Consejo"]
+    headers = ["Ticker", "Compra", "Actual", "P&L", "Veredicto", "Confianza", "Consejo"]
     print("\n" + "="*80)
     print(f"ESTADO DEL PORTAFOLIO")
     print("="*80 + "\n")
@@ -151,12 +152,31 @@ def run_watchlist_scanner(is_short_term=False, generate_html=False):
         
         symbol = res['symbol']
         verdict = res['strategy']['verdict']
+        confidence = res['strategy']['confidence']
         v_color = Fore.GREEN if "COMPRA" in verdict else Fore.RED if "VENTA" in verdict else Fore.WHITE
         
-        table_data.append([symbol, f"${res['current_price']:.2f}", f"{v_color}{verdict}{Style.RESET_ALL}", f"{res['strategy']['confidence']:.0f}%"])
+        table_data.append([symbol, f"${res['current_price']:.2f}", f"{v_color}{verdict}{Style.RESET_ALL}", f"{confidence:.0f}%"])
+    
+    # Ordenar por confianza descendente
+    table_data.sort(key=lambda x: float(x[3].rstrip('%')), reverse=True)
             
     if table_data:
-        print("\n" + tabulate(table_data, headers=["Ticker", "Precio", "Veredicto", "Confianza"], tablefmt="fancy_grid") + "\n")
+        full_table = tabulate(table_data, headers=["Ticker", "Precio", "Veredicto", "Confianza"], tablefmt="fancy_grid")
+        print("\n" + full_table + "\n")
+        
+        # Resumen por veredicto
+        compra = len([x for x in table_data if "COMPRA" in x[2]])
+        venta = len([x for x in table_data if "VENTA" in x[2]])
+        neutral = len([x for x in table_data if "NEUTRAL" in x[2] or "MANTENER" in x[2]])
+        
+        print(f"{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}RESUMEN:{Style.RESET_ALL}")
+        print(f"  Total analizado: {len(table_data)} acciones")
+        print(f"  🟢 COMPRA/FUERTE COMPRA: {compra}")
+        print(f"  🔴 VENTA/FUERTE VENTA: {venta}")
+        print(f"  ⚪ NEUTRAL/MANTENER: {neutral}")
+        print(f"  ❌ Errores de descarga: {len(tickers) - len(table_data)}")
+        print(f"{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}\n")
     else:
         print(f"\n{Fore.YELLOW}No se pudieron obtener resultados para tu watchlist.{Style.RESET_ALL}")
     
