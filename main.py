@@ -565,6 +565,8 @@ EJEMPLOS DE USO:
 📊 ANÁLISIS:
   python main.py AAPL                    Análisis Estructural (Horizonte: 3-5 años)
   python main.py AAPL -st                Análisis Táctico (Horizonte: 3-6 meses) + ADX/Trend Gate
+  python main.py VOO --etf               Análisis de ETF (80% técnico, 20% macro)
+  python main.py QQQ --etf -st           Análisis de ETF en corto plazo
   python main.py -s                      Escanear Top 25 (Largo Plazo)
   python main.py -s -st                  Escanear con enfoque táctico (Corto Plazo)
 
@@ -621,6 +623,8 @@ SISTEMA DE EXCELENCIA 2.0:
                         help='Escanear Top 25 del mercado')
     parser.add_argument('-st', '--short-term', action='store_true',
                         help='Modo corto plazo (3-6 meses). Combina con cualquier comando')
+    parser.add_argument('--etf', action='store_true',
+                        help='Modo ETF (prioriza análisis técnico, skip fundamentales complejos)')
     
     # Watchlist
     parser.add_argument('-w', '--watch', type=str, metavar='TICKER',
@@ -815,7 +819,7 @@ SISTEMA DE EXCELENCIA 2.0:
             data = dm.get_ticker_data(args.ticker)
             data['macro_data'] = dm.get_macro_data()
             
-            agent = FinancialAgent(args.ticker, is_short_term=args.short_term)
+            agent = FinancialAgent(args.ticker, is_short_term=args.short_term, is_etf=args.etf)
             results = agent.run_analysis(pre_data=data)
             
             if "error" in results:

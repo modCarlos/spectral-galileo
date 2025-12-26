@@ -108,5 +108,21 @@
         "symbol": "INTC",
         "buy_price": 23.8,
         "date": "2025-12-21 21:00:01"
+    },
+    {
+        "symbol": "VOO",
+        "buy_price": 634.780029296875,
+        "date": "2025-12-25 21:19:24",
+        "stop_loss": 623.4018105115849,
+        "take_profit": 657.536466867455,
+        "position_size": 31
+    },
+    {
+        "symbol": "URA",
+        "buy_price": 46.560001373291016,
+        "date": "2025-12-25 21:20:52",
+        "stop_loss": 43.84500135694231,
+        "take_profit": 51.99000140598842,
+        "position_size": 429
     }
 ]

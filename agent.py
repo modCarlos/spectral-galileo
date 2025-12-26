@@ -290,15 +290,23 @@ def calculate_take_profit_price(entry_price: float, atr: float, is_long_term: bo
 # ============================================================
 
 class FinancialAgent:
-    def __init__(self, ticker_symbol, is_short_term=False):
+    def __init__(self, ticker_symbol, is_short_term=False, is_etf=False):
         self.ticker_symbol = ticker_symbol
         self.is_short_term = is_short_term
+        self.is_etf = is_etf
         self.ticker = market_data.get_ticker_data(ticker_symbol)
         self.data = None
         self.info = None
         self.news = None
         self.macro_data = None
         self.analysis_results = {}
+        
+        # Auto-detectar ETFs comunes
+        if not is_etf:
+            common_etfs = ['VOO', 'SPY', 'QQQ', 'IWM', 'VTI', 'VEA', 'VWO', 'AGG', 'BND', 
+                          'VNQ', 'GLD', 'SLV', 'XLF', 'XLE', 'XLK', 'XLV', 'XLI', 'XLP', 
+                          'XLY', 'XLB', 'XLU', 'XLRE', 'VIG', 'VYM', 'SCHD', 'DIA', 'EEM']
+            self.is_etf = ticker_symbol.upper() in common_etfs
 
     def run_analysis(self, pre_data=None):
         """
@@ -404,10 +412,17 @@ class FinancialAgent:
             vol_score = calculate_volatility_score_nonlinear(annual_volatility)
             
             # 6. Final Score Normalized (0-100)
-            final_score_st = (
-                technical_score * 0.85 +
-                vol_score * 0.15
-            )
+            # ETF Mode: 90% technical, 10% volatility (sin fundamentales)
+            if self.is_etf:
+                final_score_st = (
+                    technical_score * 0.90 +
+                    vol_score * 0.10
+                )
+            else:
+                final_score_st = (
+                    technical_score * 0.85 +
+                    vol_score * 0.15
+                )
             
             # 7. Confidence Score (Phase 4A Enhancement)
             confidence_pct = calculate_confidence_short_term(
@@ -508,8 +523,35 @@ class FinancialAgent:
                     cons.append("⚠️ TREND GATE: Fuerte tendencia bajista estructural - Riesgo de Value Trap")
 
         # 5. Análisis Fundamental (Benchmarking Industrial en LP)
-        pe = self.info.get('trailingPE')
-        f_pe = self.info.get('forwardPE')
+        # Inicializar variables que se usan fuera del bloque
+        pe = None
+        peg = None
+        rec_key = None
+        
+        # ETF Mode: Skip fundamentales complejos, solo P/E ratio básico
+        if self.is_etf:
+            pe = self.info.get('trailingPE')
+            div_yield = self.info.get('dividendYield', 0) or 0
+            
+            if pe:
+                potential_max += 1.0
+                if pe < 25:
+                    score += 1.0
+                    pros.append(f"P/E Razonable ({pe:.1f})")
+                elif pe > 35:
+                    score -= 0.5
+                    cons.append(f"P/E Elevado ({pe:.1f})")
+            
+            if div_yield > 0.02:  # Yield > 2%
+                potential_max += 0.5
+                score += 0.5
+                pros.append(f"Buen Yield ({div_yield*100:.2f}%)")
+                
+            pros.append("🏦 Modo ETF: Análisis simplificado (técnicos prioritarios)")
+        else:
+            # Análisis fundamental completo para acciones individuales
+            pe = self.info.get('trailingPE')
+            f_pe = self.info.get('forwardPE')
         
         # PEG
         peg = self.info.get('pegRatio')
@@ -564,31 +606,31 @@ class FinancialAgent:
                 elif de > target_de * 2:
                     score -= 0.5
                     cons.append(f"Apalancamiento elevado ({de:.1f})")
-        else:
-            if not self.is_short_term: cons.append("Dato faltante: Deuda/Equity")
+            else:
+                if not self.is_short_term: cons.append("Dato faltante: Deuda/Equity")
 
-        # Tamaño y Liquidez (Solo LP v4.1 - 0.5 pts)
-        if not self.is_short_term:
-            mcap = self.info.get('marketCap', 0)
-            avg_vol = self.info.get('averageVolume', 0)
-            potential_max += 0.5
-            if mcap and mcap > 5_000_000_000:
-                score += 0.3
-                pros.append(f"Entidad Institucional (Market Cap: ${mcap/1e9:.1f}B)")
-            if avg_vol and avg_vol > 500_000:
-                score += 0.2
-                pros.append("Liquidez Saludable (>500k acciones/día)")
-
-        # Analistas (LP v4.1 - 0.5 pts)
-        rec_key = self.info.get('recommendationKey')
-        if rec_key:
+            # Tamaño y Liquidez (Solo LP v4.1 - 0.5 pts)
             if not self.is_short_term:
+                mcap = self.info.get('marketCap', 0)
+                avg_vol = self.info.get('averageVolume', 0)
                 potential_max += 0.5
-                if rec_key in ['buy', 'strong_buy']: 
-                    score += 0.5
-                    pros.append(f"Analistas: {rec_key.upper()}")
-                elif rec_key in ['sell', 'strong_sell']: 
-                    score -= 0.5
+                if mcap and mcap > 5_000_000_000:
+                    score += 0.3
+                    pros.append(f"Entidad Institucional (Market Cap: ${mcap/1e9:.1f}B)")
+                if avg_vol and avg_vol > 500_000:
+                    score += 0.2
+                    pros.append("Liquidez Saludable (>500k acciones/día)")
+
+            # Analistas (LP v4.1 - 0.5 pts)
+            rec_key = self.info.get('recommendationKey')
+            if rec_key:
+                if not self.is_short_term:
+                    potential_max += 0.5
+                    if rec_key in ['buy', 'strong_buy']: 
+                        score += 0.5
+                        pros.append(f"Analistas: {rec_key.upper()}")
+                    elif rec_key in ['sell', 'strong_sell']: 
+                        score -= 0.5
 
         # Catalizadores de Corto Plazo (CP v2.3 - Total 1.3 pts extras)
         if self.is_short_term:
