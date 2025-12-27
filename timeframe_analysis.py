@@ -6,10 +6,30 @@ Analyzes price action across multiple timeframes to confirm signals
 import pandas as pd
 import market_data
 import indicators
+import signal
+from contextlib import contextmanager
+
+class TimeoutException(Exception):
+    """Exception raised when an operation times out"""
+    pass
+
+@contextmanager
+def time_limit(seconds):
+    """Context manager to enforce time limit on operations"""
+    def signal_handler(signum, frame):
+        raise TimeoutException(f"Operation timed out after {seconds} seconds")
+    
+    old_handler = signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
 
 def analyze_timeframe(ticker_symbol, period, interval):
     """
-    Analyze a single timeframe
+    Analyze a single timeframe with timeout protection
     
     Args:
         ticker_symbol: Stock symbol
@@ -17,12 +37,14 @@ def analyze_timeframe(ticker_symbol, period, interval):
         interval: Data interval (1d, 1wk, 1mo)
         
     Returns:
-        dict with timeframe analysis
+        dict with timeframe analysis or None on timeout/error
     """
     try:
-        # Get data
-        ticker = market_data.get_ticker_data(ticker_symbol)
-        data = market_data.get_historical_data(ticker, period=period, interval=interval)
+        # Add 10-second timeout for each timeframe analysis
+        with time_limit(10):
+            # Get data
+            ticker = market_data.get_ticker_data(ticker_symbol)
+            data = market_data.get_historical_data(ticker, period=period, interval=interval)
         
         if data.empty or len(data) < 50:
             return None
@@ -98,6 +120,9 @@ def analyze_timeframe(ticker_symbol, period, interval):
             'confidence': abs(bullish_signals - bearish_signals) / (bullish_signals + bearish_signals) * 100
         }
         
+    except TimeoutException as e:
+        print(f"⚠️  Timeframe analysis timeout for {ticker_symbol} ({period}, {interval})")
+        return None
     except Exception as e:
         return None
 

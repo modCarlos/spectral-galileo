@@ -10,9 +10,30 @@ import requests
 from datetime import datetime, timedelta
 import time
 from urllib.parse import quote
+import signal
+from contextlib import contextmanager
 
 # User agent for requests
 USER_AGENT = "Mozilla/5.0 (compatible; StockAnalyzer/1.0)"
+
+class TimeoutException(Exception):
+    pass
+
+@contextmanager
+def time_limit(seconds):
+    """Context manager to enforce timeout on operations"""
+    def signal_handler(signum, frame):
+        raise TimeoutException("Operation timed out")
+    
+    # Set the signal handler
+    old_handler = signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
 
 def search_reddit_json(subreddit, query, limit=25):
     """
@@ -75,6 +96,39 @@ def get_reddit_sentiment(ticker_symbol, hours=24, max_posts=100):
     Returns:
         dict with sentiment analysis
     """
+    
+    try:
+        # Enforce 15 second timeout for entire Reddit API operation
+        with time_limit(15):
+            return _get_reddit_sentiment_internal(ticker_symbol, hours, max_posts)
+    except TimeoutException:
+        # Return neutral sentiment on timeout
+        return {
+            'available': True,
+            'ticker': ticker_symbol.upper(),
+            'mentions': 0,
+            'sentiment': 'NEUTRAL',
+            'score': 0,
+            'confidence': 0,
+            'engagement': 0,
+            'message': f'Reddit API timeout (>15s) - using NEUTRAL'
+        }
+    except Exception as e:
+        # Return neutral sentiment on any error
+        return {
+            'available': True,
+            'ticker': ticker_symbol.upper(),
+            'mentions': 0,
+            'sentiment': 'NEUTRAL',
+            'score': 0,
+            'confidence': 0,
+            'engagement': 0,
+            'message': f'Reddit API error: {str(e)}'
+        }
+
+
+def _get_reddit_sentiment_internal(ticker_symbol, hours=24, max_posts=100):
+    """Internal function with actual Reddit API logic"""
     
     ticker = ticker_symbol.upper()
     

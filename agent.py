@@ -380,16 +380,31 @@ class FinancialAgent:
         if self.skip_external_data:
             reddit_data = {'sentiment': 'NEUTRAL', 'posts': 0, 'avg_score': 0}
         else:
-            reddit_data = reddit_sentiment.get_reddit_sentiment(self.ticker_symbol, hours=24)
+            try:
+                reddit_data = reddit_sentiment.get_reddit_sentiment(self.ticker_symbol, hours=24)
+            except Exception as e:
+                print(f"⚠️  Reddit API timeout/error: {e}")
+                reddit_data = {'sentiment': 'NEUTRAL', 'posts': 0, 'avg_score': 0}
         
         # 2.4 Earnings Calendar & Surprises (Phase 2.2)
         if self.skip_external_data:
             earnings_data = {'next_date': None, 'recent_surprise': None}
         else:
-            earnings_data = earnings_calendar.get_earnings_info(self.ticker_symbol)
+            try:
+                earnings_data = earnings_calendar.get_earnings_info(self.ticker_symbol)
+            except Exception as e:
+                print(f"⚠️  Earnings API timeout/error: {e}")
+                earnings_data = {'next_date': None, 'recent_surprise': None}
         
-        # 2.5 Insider Trading Activity (Phase 2.3) - Keep this, yfinance is fast
-        insider_data = insider_trading.get_insider_activity(self.ticker_symbol, days=90)
+        # 2.5 Insider Trading Activity (Phase 2.3)
+        if self.skip_external_data:
+            insider_data = {'sentiment': 'NEUTRAL', 'net_buying': 0, 'score': 0}
+        else:
+            try:
+                insider_data = insider_trading.get_insider_activity(self.ticker_symbol, days=90)
+            except Exception as e:
+                print(f"⚠️  Insider Trading API timeout/error: {e}")
+                insider_data = {'sentiment': 'NEUTRAL', 'net_buying': 0, 'score': 0}
         
         # Extracción de métricas
         rsi = latest['RSI']
