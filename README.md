@@ -99,10 +99,36 @@ Win Rate:            0.0%
 
 ## 📖 Documentación
 
-- [📐 Fórmula de Scoring](docs/scoring_formula.md) - Cómo decide el agente comprar/vender
-- [💡 Ideas Futuras](docs/ideas.md) - Roadmap de mejoras
-- [🏗️ Arquitectura](docs/architecture.md) - Design del sistema
-- [🧪 Testing](docs/testing.md) - Guía de tests
+**🆕 Índice Maestro:** [docs/INDEX.md](docs/INDEX.md) - Navegación completa de toda la documentación
+
+### Documentos Principales
+
+#### Para Usuarios
+- **[High Conviction Guide](docs/guides/HIGH_CONVICTION_GUIDE.md)** - Cómo interpretar señales de trading
+- **[API Documentation](docs/guides/API_DOCUMENTATION.md)** - Referencia completa de comandos
+
+#### Para Desarrolladores
+- **[Arquitectura](docs/technical/architecture.md)** - Diseño del sistema
+- **[Agent Integration](docs/technical/AGENT_INTEGRATION_PLAN.md)** - Cómo funciona el agente
+- **[Backtesting Guide](docs/backtesting/how_to_run_backtesting.md)** - Ejecutar backtests
+
+#### Fórmulas de Scoring
+- **[Short-Term v4.0](docs/formulas/scoring_formula_short_term_optimized.md)** - Trading 3-6 meses (85% técnico)
+- **[Long-Term v6.0](docs/formulas/scoring_formula_long_term_optimized.md)** - Inversión 3-5 años (50% técnico + 35% fundamental)
+
+#### Estado del Proyecto
+- **[Phase 4 Deployment](docs/phases/PHASE4_DEPLOYMENT_STATUS.md)** - Estado actual de producción
+- **[Backtesting Results](docs/backtesting/COMPARISON_FINAL_RESULTS.md)** - Validación completa
+
+### Métricas de Producción (27-Dic-2025)
+
+```
+🟢 Status: En Producción - Gradual Rollout
+📊 Tickers Activos: 10 (Fase 1 de 3)
+🎯 Thresholds: 30% strong_buy, 25% buy
+📈 COMPRA Rate: 19.7% (vs 1.6% sistema antiguo - 12.3x mejora)
+✅ Performance: +92% retorno, Sharpe 1.45, Win Rate 60%
+```
 
 ## 🎯 Ejemplo de Salida
 
