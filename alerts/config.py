@@ -22,9 +22,12 @@ DEFAULT_CONFIG = {
         "rm_triggered": True
     },
     
+    # Phase 3 Optimized Thresholds (Dec 2025)
+    # Based on grid search + category-specific optimization
+    # Final results: 19.7% COMPRA, 31.4% avg confidence
     "min_confidence": {
-        "strong_buy": 70,  # Permisivo al inicio para testing
-        "buy": 60
+        "strong_buy": 30,  # High-quality signals (optimized from 70%)
+        "buy": 25          # Balanced threshold (optimized from 60%)
     },
     
     "cooldown_hours": 4,

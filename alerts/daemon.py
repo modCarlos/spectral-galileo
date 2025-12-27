@@ -204,9 +204,9 @@ class AlertDaemon:
             logger.debug(f"⏸️  {ticker}: En cooldown")
             return False
         
-        # Analizar ticker
+        # Analizar ticker (Production: use all external data sources)
         is_short_term = self.config['analysis_mode'] == 'short_term'
-        agent = FinancialAgent(ticker, is_short_term=is_short_term)
+        agent = FinancialAgent(ticker, is_short_term=is_short_term, skip_external_data=False)
         results = agent.analyze()
         
         verdict = results.get('verdict', 'NEUTRAL')
@@ -295,9 +295,9 @@ class AlertDaemon:
         if not entry_price or (not stop_loss and not take_profit):
             return False
         
-        # Obtener precio actual
+        # Obtener precio actual (Production: use all external data)
         try:
-            agent = FinancialAgent(ticker, is_short_term=True)
+            agent = FinancialAgent(ticker, is_short_term=True, skip_external_data=False)
             current_price = agent.get_current_price()
         except:
             return False
