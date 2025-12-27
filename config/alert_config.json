@@ -10,8 +10,8 @@
         "rm_triggered": true
     },
     "min_confidence": {
-        "strong_buy": 70,
-        "buy": 60
+        "strong_buy": 30,
+        "buy": 25
     },
     "cooldown_hours": 4,
     "max_alerts_per_hour": 5,
