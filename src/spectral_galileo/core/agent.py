@@ -1,13 +1,13 @@
-import macro_analysis
-import sentiment_analysis
-import market_data
-import indicators
-import report_generator
-import timeframe_analysis
-import regime_detection
-import reddit_sentiment
-import earnings_calendar
-import insider_trading
+from src.spectral_galileo.analysis import macro_analysis
+from src.spectral_galileo.analysis import sentiment_analysis
+from src.spectral_galileo.data import market_data
+from src.spectral_galileo.analysis import indicators
+from src.spectral_galileo.data import report_generator
+from src.spectral_galileo.analysis import timeframe_analysis
+from src.spectral_galileo.analysis import regime_detection
+from src.spectral_galileo.external import reddit_sentiment
+from src.spectral_galileo.external import earnings_calendar
+from src.spectral_galileo.external import insider_trading
 import pandas as pd
 import random # Para Monte Carlo simplificado
 import os
@@ -1121,7 +1121,7 @@ class FinancialAgent:
         )
         
         # Phase 4C: Dynamic account value from portfolio_manager
-        import portfolio_manager
+        from src.spectral_galileo.core import portfolio_manager
         account_value = portfolio_manager.get_account_value()
         
         # Phase 4C: Adapt max_risk for Long-Term (more conservative)

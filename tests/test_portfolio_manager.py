@@ -7,7 +7,7 @@ from datetime import datetime
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import portfolio_manager
+from src.spectral_galileo.core import portfolio_manager
 
 class TestPortfolioManager(unittest.TestCase):
     

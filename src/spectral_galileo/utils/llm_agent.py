@@ -14,7 +14,7 @@ try:
 except ImportError:
     GEMINI_AVAILABLE = False
 
-import market_data
+from src.spectral_galileo.data import market_data
 
 
 class LLMFinancialAgent:

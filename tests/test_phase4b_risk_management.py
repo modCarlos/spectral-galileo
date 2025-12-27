@@ -12,7 +12,7 @@ Tests validate:
 
 import pytest
 import numpy as np
-from agent import (
+from src.spectral_galileo.core.agent import (
     calculate_atr, 
     calculate_position_size_risk_based,
     calculate_stop_loss_price,
@@ -212,7 +212,7 @@ class TestRiskManagementIntegration:
     
     def test_analysis_results_includes_rm_section(self):
         """Test that analysis_results includes risk_management section"""
-        from agent import FinancialAgent
+        from src.spectral_galileo.core.agent import FinancialAgent
         
         # Use a real ticker with data
         agent = FinancialAgent("AAPL", is_short_term=True)
@@ -223,7 +223,7 @@ class TestRiskManagementIntegration:
     
     def test_rm_section_has_required_fields(self):
         """Test that risk_management section has all required fields"""
-        from agent import FinancialAgent
+        from src.spectral_galileo.core.agent import FinancialAgent
         
         agent = FinancialAgent("AAPL", is_short_term=True)
         results = agent.run_analysis()
@@ -242,7 +242,7 @@ class TestRiskManagementIntegration:
     
     def test_rm_values_are_reasonable(self):
         """Test that RM values are within reasonable ranges"""
-        from agent import FinancialAgent
+        from src.spectral_galileo.core.agent import FinancialAgent
         
         agent = FinancialAgent("AAPL", is_short_term=True)
         results = agent.run_analysis()
@@ -276,7 +276,7 @@ class TestPortfolioManagerRMFunctions:
     
     def test_add_stock_with_rm_parameters(self):
         """Test adding stock with RM parameters"""
-        import portfolio_manager
+        from src.spectral_galileo.core import portfolio_manager
         
         # Clean slate
         portfolio_manager.save_portfolio([])
@@ -306,7 +306,7 @@ class TestPortfolioManagerRMFunctions:
     
     def test_check_stop_loss_take_profit_empty_portfolio(self):
         """Test RM check with empty portfolio"""
-        import portfolio_manager
+        from src.spectral_galileo.core import portfolio_manager
         
         portfolio_manager.save_portfolio([])
         alerts = portfolio_manager.check_stop_loss_take_profit()

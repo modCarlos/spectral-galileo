@@ -3,13 +3,13 @@ Phase 4C Tests: Dynamic Account Value, Auto-Add with RM, Long-Term RM
 """
 
 import pytest
-from agent import (
+from src.spectral_galileo.core.agent import (
     calculate_stop_loss_price,
     calculate_take_profit_price,
     calculate_position_size_risk_based,
     FinancialAgent
 )
-import portfolio_manager
+from src.spectral_galileo.core import portfolio_manager
 import os
 
 

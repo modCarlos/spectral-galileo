@@ -9,7 +9,7 @@ Test ST scoring with real tickers to validate:
 """
 
 import sys
-from agent import FinancialAgent
+from src.spectral_galileo.core.agent import FinancialAgent
 
 def test_ticker(ticker: str, is_short_term: bool = True):
     print(f"\n{'='*60}")

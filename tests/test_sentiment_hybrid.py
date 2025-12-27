@@ -4,7 +4,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import sentiment_analysis
+from src.spectral_galileo.analysis import sentiment_analysis
 
 class TestSentimentHybrid(unittest.TestCase):
     

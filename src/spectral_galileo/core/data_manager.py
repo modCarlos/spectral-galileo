@@ -4,7 +4,7 @@ usando concurrencia y caché simple.
 """
 
 import concurrent.futures
-import market_data
+from src.spectral_galileo.data import market_data
 from datetime import datetime, timedelta
 
 class DataManager:

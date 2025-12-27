@@ -15,7 +15,7 @@ from typing import List, Dict, Any
 # Agregar directorio raíz al path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from agent import FinancialAgent
+from src.spectral_galileo.core.agent import FinancialAgent
 from watchlist_manager import get_watchlist_tickers
 from portfolio_manager import load_portfolio
 from alerts.config import (

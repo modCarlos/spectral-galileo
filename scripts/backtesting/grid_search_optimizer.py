@@ -3,7 +3,7 @@ Grid Search Optimizer for Financial Agent
 Finds optimal parameters through systematic search
 """
 
-import agent
+from src.spectral_galileo.core import agent
 import pandas as pd
 import json
 import time

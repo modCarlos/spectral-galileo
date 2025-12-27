@@ -1,6 +1,6 @@
 
 import pandas as pd
-import indicators
+from src.spectral_galileo.analysis import indicators
 
 def calculate_fear_greed_index(vix_price, gspc_rsi):
     """

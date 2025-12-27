@@ -2,7 +2,7 @@
 import json
 import os
 import datetime
-import market_data
+from src.spectral_galileo.data import market_data
 
 PORTFOLIO_FILE = "portfolio.json"
 CONFIG_FILE = "portfolio_config.json"

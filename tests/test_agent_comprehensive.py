@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agent import FinancialAgent
+from src.spectral_galileo.core.agent import FinancialAgent
 
 
 class TestAgentComprehensiveScoring(unittest.TestCase):

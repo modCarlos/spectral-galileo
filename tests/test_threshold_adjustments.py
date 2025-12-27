@@ -3,7 +3,7 @@ Threshold Adjustment Validation Script
 Tests the impact of adjusted thresholds on key tickers
 """
 
-import agent
+from src.spectral_galileo.core import agent
 import pandas as pd
 
 def test_adjusted_thresholds():

@@ -6,7 +6,7 @@ Compares agent performance BEFORE (main branch) vs AFTER (with Phase 1+2 improve
 import json
 import pandas as pd
 from datetime import datetime
-import agent
+from src.spectral_galileo.core import agent
 import sys
 import time
 

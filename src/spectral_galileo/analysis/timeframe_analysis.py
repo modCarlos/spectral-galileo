@@ -4,8 +4,8 @@ Analyzes price action across multiple timeframes to confirm signals
 """
 
 import pandas as pd
-import market_data
-import indicators
+from src.spectral_galileo.data import market_data
+from src.spectral_galileo.analysis import indicators
 import signal
 from contextlib import contextmanager
 

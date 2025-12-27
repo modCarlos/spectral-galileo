@@ -5,7 +5,7 @@ Phase 1-3 complete: Multi-timeframe, External Data, Grid Search, Category Thresh
 """
 
 import json
-import agent
+from src.spectral_galileo.core import agent
 import time
 from datetime import datetime
 import numpy as np
@@ -44,7 +44,7 @@ def main():
                 returns = np.diff(close_prices) / close_prices[:-1]
                 volatility = np.std(returns) * np.sqrt(252)
                 
-                from agent import categorize_stock_for_thresholds
+                from src.spectral_galileo.core.agent import categorize_stock_for_thresholds
                 category = categorize_stock_for_thresholds(volatility, ticker)
                 
                 results.append({

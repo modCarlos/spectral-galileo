@@ -7,7 +7,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
-from agent import FinancialAgent
+from src.spectral_galileo.core.agent import FinancialAgent
 
 
 class TestEndToEndAnalysis(unittest.TestCase):

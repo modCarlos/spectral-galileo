@@ -249,7 +249,7 @@ def test_analysis_flow():
     print_header("TEST 6: FLUJO DE ANÁLISIS (DRY RUN)")
     
     try:
-        from agent import FinancialAgent
+        from src.spectral_galileo.core.agent import FinancialAgent
         
         # Analizar un ticker simple
         ticker = "AAPL"

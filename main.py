@@ -1,10 +1,10 @@
 import argparse
 import sys
-import portfolio_manager
-import watchlist_manager
-import market_data
-from agent import FinancialAgent
-from data_manager import DataManager
+from src.spectral_galileo.core import portfolio_manager
+from src.spectral_galileo.core import watchlist_manager
+from src.spectral_galileo.data import market_data
+from src.spectral_galileo.core.agent import FinancialAgent
+from src.spectral_galileo.core.data_manager import DataManager
 import concurrent.futures
 from colorama import init, Fore, Style
 from tabulate import tabulate

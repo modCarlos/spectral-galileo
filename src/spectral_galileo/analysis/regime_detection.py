@@ -3,8 +3,8 @@ Market Regime Detection Module
 Detects if market is in Bull, Bear, or Sideways regime and adjusts strategy accordingly
 """
 
-import market_data
-import indicators
+from src.spectral_galileo.data import market_data
+from src.spectral_galileo.analysis import indicators
 
 def detect_market_regime():
     """
