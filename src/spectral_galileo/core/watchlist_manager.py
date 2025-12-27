@@ -2,7 +2,7 @@
 import json
 import os
 
-WATCHLIST_FILE = "watchlist.json"
+WATCHLIST_FILE = "config/watchlist.json"
 
 def load_watchlist():
     if not os.path.exists(WATCHLIST_FILE):

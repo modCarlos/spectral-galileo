@@ -16,7 +16,7 @@ def run_watchlist_analysis(output_file='backtesting_comparison_new.csv'):
     """
     
     # Load watchlist
-    with open('watchlist.json', 'r') as f:
+    with open('config/watchlist.json', 'r') as f:
         tickers = json.load(f)
     
     print(f"🔍 Analyzing {len(tickers)} tickers from watchlist...")

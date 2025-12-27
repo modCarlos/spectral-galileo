@@ -4,8 +4,8 @@ import os
 import datetime
 from src.spectral_galileo.data import market_data
 
-PORTFOLIO_FILE = "portfolio.json"
-CONFIG_FILE = "portfolio_config.json"
+PORTFOLIO_FILE = "data/portfolio.json"
+CONFIG_FILE = "config/portfolio_config.json"
 
 def load_config():
     """Load portfolio configuration (account value, risk settings)"""

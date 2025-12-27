@@ -12,7 +12,7 @@ import numpy as np
 
 def main():
     # Load watchlist
-    with open('watchlist.json', 'r') as f:
+    with open('config/watchlist.json', 'r') as f:
         tickers = json.load(f)
     
     print('='*70)

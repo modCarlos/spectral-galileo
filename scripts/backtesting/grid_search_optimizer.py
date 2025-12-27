@@ -194,7 +194,7 @@ def grid_search(param_grid=None, tickers=None, method='random', n_samples=50,
     if tickers is None:
         # Use sample of watchlist
         import json
-        with open('watchlist.json', 'r') as f:
+        with open('config/watchlist.json', 'r') as f:
             watchlist = json.load(f)
         tickers = watchlist[:20]  # First 20 for speed
     
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     # Load tickers
-    with open('watchlist.json', 'r') as f:
+    with open('config/watchlist.json', 'r') as f:
         watchlist = json.load(f)
     tickers = watchlist[:args.tickers]
     
