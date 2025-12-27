@@ -10,6 +10,9 @@ import time
 from itertools import product
 import random
 from typing import Dict, List, Any
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from functools import partial
+import multiprocessing
 
 # Parameter grid
 DEFAULT_PARAM_GRID = {
@@ -96,7 +99,8 @@ def evaluate_config(config: Dict, tickers: List[str], verbose=False) -> Dict[str
             print(f"    [{i}/{len(tickers)}] {ticker}...")
         
         try:
-            trading_agent = agent.FinancialAgent(ticker, is_short_term=False)
+            # Skip external data (Reddit/Earnings) to avoid API blocking
+            trading_agent = agent.FinancialAgent(ticker, is_short_term=False, skip_external_data=True)
             
             # Apply config (simplified - just run normal analysis for now)
             analysis = trading_agent.run_analysis()
@@ -168,9 +172,10 @@ def evaluate_config(config: Dict, tickers: List[str], verbose=False) -> Dict[str
     }
 
 
-def grid_search(param_grid=None, tickers=None, method='random', n_samples=50, verbose=True):
+def grid_search(param_grid=None, tickers=None, method='random', n_samples=50, 
+                verbose=True, n_workers=None):
     """
-    Run grid search optimization
+    Run grid search optimization with parallel processing
     
     Args:
         param_grid: Parameter grid to search (uses default if None)
@@ -178,6 +183,7 @@ def grid_search(param_grid=None, tickers=None, method='random', n_samples=50, ve
         method: 'grid' or 'random'
         n_samples: Number of samples for random search
         verbose: Print progress
+        n_workers: Number of parallel workers (None = auto-detect)
         
     Returns:
         List of results sorted by score
@@ -190,14 +196,18 @@ def grid_search(param_grid=None, tickers=None, method='random', n_samples=50, ve
         import json
         with open('watchlist.json', 'r') as f:
             watchlist = json.load(f)
-        tickers = watchlist['tickers'][:20]  # First 20 for speed
+        tickers = watchlist[:20]  # First 20 for speed
+    
+    if n_workers is None:
+        n_workers = max(1, multiprocessing.cpu_count() - 1)  # Leave 1 core free
     
     if verbose:
         print('='*70)
-        print('🔍 GRID SEARCH OPTIMIZATION')
+        print('🔍 GRID SEARCH OPTIMIZATION (PARALLEL)')
         print('='*70)
         print(f'\nMethod: {method.upper()}')
         print(f'Tickers: {len(tickers)}')
+        print(f'Workers: {n_workers} parallel processes')
         if method == 'random':
             print(f'Samples: {n_samples}')
         else:
@@ -214,37 +224,78 @@ def grid_search(param_grid=None, tickers=None, method='random', n_samples=50, ve
     all_results = []
     configs = list(generate_configs(param_grid, method, n_samples))
     
-    print(f'\n🚀 Starting evaluation of {len(configs)} configurations...\n')
+    print(f'\n🚀 Starting evaluation of {len(configs)} configurations...')
+    print(f'⚡ Using {n_workers} parallel workers\n')
     
-    for i, config in enumerate(configs, 1):
-        if verbose:
-            print(f'\n[{i}/{len(configs)}] Evaluating configuration...')
-        
-        start_time = time.time()
-        result = evaluate_config(config, tickers, verbose=verbose)
-        elapsed = time.time() - start_time
-        
-        all_results.append(result)
-        
-        if verbose:
-            print(f'\n  Results:')
-            print(f'    Score: {result["score"]:.3f}')
-            print(f'    COMPRA: {result["compra_count"]}/{result["total"]} ({result["coverage"]*100:.0f}%)')
-            print(f'    Avg COMPRA Confidence: {result["avg_compra_conf"]:.1f}%')
-            print(f'    Time: {elapsed:.1f}s')
+    start_time = time.time()
+    
+    if n_workers > 1:
+        # Parallel processing
+        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+            # Submit all tasks
+            future_to_config = {
+                executor.submit(evaluate_config, config, tickers, False): (i, config)
+                for i, config in enumerate(configs, 1)
+            }
+            
+            # Process results as they complete
+            for future in as_completed(future_to_config):
+                i, config = future_to_config[future]
+                try:
+                    result = future.result()
+                    all_results.append(result)
+                    
+                    if verbose:
+                        elapsed = time.time() - start_time
+                        remaining = len(configs) - len(all_results)
+                        eta = (elapsed / len(all_results)) * remaining if all_results else 0
+                        
+                        print(f'[{len(all_results)}/{len(configs)}] Score: {result["score"]:.3f} | '
+                              f'COMPRA: {result["compra_count"]}/{result["total"]} ({result["coverage"]*100:.0f}%) | '
+                              f'Conf: {result["avg_compra_conf"]:.1f}% | '
+                              f'ETA: {eta/60:.0f}m')
+                
+                except Exception as e:
+                    if verbose:
+                        print(f'[{i}/{len(configs)}] ❌ ERROR: {str(e)[:50]}')
+    else:
+        # Sequential processing (fallback)
+        for i, config in enumerate(configs, 1):
+            if verbose:
+                print(f'\n[{i}/{len(configs)}] Evaluating configuration...')
+            
+            try:
+                result = evaluate_config(config, tickers, verbose=False)
+                all_results.append(result)
+                
+                if verbose:
+                    elapsed = time.time() - start_time
+                    print(f'  Score: {result["score"]:.3f}')
+                    print(f'  COMPRA: {result["compra_count"]}/{result["total"]} ({result["coverage"]*100:.0f}%)')
+                    print(f'  Avg COMPRA Confidence: {result["avg_compra_conf"]:.1f}%')
+                    print(f'  Time: {elapsed:.1f}s')
+            
+            except Exception as e:
+                if verbose:
+                    print(f'  ❌ ERROR: {str(e)}')
+    
+    total_time = time.time() - start_time
     
     # Sort by score
     all_results.sort(key=lambda x: x['score'], reverse=True)
     
     if verbose:
         print('\n' + '='*70)
-        print('🏆 TOP 5 CONFIGURATIONS')
+        print(f'⏱️  COMPLETED IN {total_time/60:.1f} MINUTES')
+        print('='*70)
+        print('🏆 TOP 10 CONFIGURATIONS')
         print('='*70)
         
-        for i, result in enumerate(all_results[:5], 1):
+        for i, result in enumerate(all_results[:10], 1):
             print(f'\n#{i} - Score: {result["score"]:.3f}')
             print(f'  COMPRA: {result["compra_count"]}/{result["total"]} ({result["coverage"]*100:.0f}%)')
             print(f'  Avg COMPRA Conf: {result["avg_compra_conf"]:.1f}%')
+            print(f'  Avg Overall Conf: {result["avg_conf"]:.1f}%')
             print(f'  Config: {result["config"]}')
     
     return all_results
@@ -276,19 +327,22 @@ if __name__ == '__main__':
                         help='Number of tickers to test')
     parser.add_argument('--output', default='grid_search_results.json',
                         help='Output file for results')
+    parser.add_argument('--workers', type=int, default=None,
+                        help='Number of parallel workers (default: auto-detect)')
     
     args = parser.parse_args()
     
     # Load tickers
     with open('watchlist.json', 'r') as f:
         watchlist = json.load(f)
-    tickers = watchlist['tickers'][:args.tickers]
+    tickers = watchlist[:args.tickers]
     
     # Run grid search
     results = grid_search(
         tickers=tickers,
         method=args.method,
         n_samples=args.n_samples,
+        n_workers=args.workers,
         verbose=True
     )
     

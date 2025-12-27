@@ -295,10 +295,11 @@ def calculate_take_profit_price(entry_price: float, atr: float, is_long_term: bo
 # ============================================================
 
 class FinancialAgent:
-    def __init__(self, ticker_symbol, is_short_term=False, is_etf=False):
+    def __init__(self, ticker_symbol, is_short_term=False, is_etf=False, skip_external_data=False):
         self.ticker_symbol = ticker_symbol
         self.is_short_term = is_short_term
         self.is_etf = is_etf
+        self.skip_external_data = skip_external_data  # For grid search optimization
         self.ticker = market_data.get_ticker_data(ticker_symbol)
         self.data = None
         self.info = None
@@ -356,12 +357,18 @@ class FinancialAgent:
         adjusted_thresholds = regime_detection.get_regime_adjusted_thresholds(annual_volatility)
         
         # 2.3 Reddit Sentiment Analysis (Phase 2.1)
-        reddit_data = reddit_sentiment.get_reddit_sentiment(self.ticker_symbol, hours=24)
+        if self.skip_external_data:
+            reddit_data = {'sentiment': 'NEUTRAL', 'posts': 0, 'avg_score': 0}
+        else:
+            reddit_data = reddit_sentiment.get_reddit_sentiment(self.ticker_symbol, hours=24)
         
         # 2.4 Earnings Calendar & Surprises (Phase 2.2)
-        earnings_data = earnings_calendar.get_earnings_info(self.ticker_symbol)
+        if self.skip_external_data:
+            earnings_data = {'next_date': None, 'recent_surprise': None}
+        else:
+            earnings_data = earnings_calendar.get_earnings_info(self.ticker_symbol)
         
-        # 2.5 Insider Trading Activity (Phase 2.3)
+        # 2.5 Insider Trading Activity (Phase 2.3) - Keep this, yfinance is fast
         insider_data = insider_trading.get_insider_activity(self.ticker_symbol, days=90)
         
         # Extracción de métricas
@@ -850,11 +857,11 @@ class FinancialAgent:
             else:
                 cons.append(f"⚠️ Timeframes en desacuerdo ({mtf_conf['score']:.0f}%)")
                 
-            # Ajustar confidence por timeframe disagreement (reduced penalty from 15% to 10%)
+            # Ajustar confidence por timeframe disagreement (optimized via grid search)
             if mtf_signal == 'SELL' and confidence > 50:
-                confidence *= 0.90  # Reduce 10% si timeframes contradicen (was 15%)
+                confidence *= 0.95  # Reduce 5% si timeframes contradicen (optimized from 0.90)
             elif mtf_signal == 'BUY' and confidence < 50:
-                confidence *= 1.10  # Boost 10% si timeframes confirman (was 15%)
+                confidence *= 1.10  # Boost 10% si timeframes confirman
         
         # 2. Technical Alignment (5 pts max)
         alignment_signals = []
@@ -1005,10 +1012,10 @@ class FinancialAgent:
             # Use regime-adjusted thresholds for long-term
             buy_threshold_lp = adjusted_thresholds['buy_threshold']
             
-            # Adjust thresholds based on regime
+            # Adjust thresholds based on regime (optimized buy_threshold via grid search)
             if confidence >= buy_threshold_lp + 5 and (probability_success or 0) >= 80:
                 verdict = "FUERTE COMPRA 🚀"
-            elif confidence >= buy_threshold_lp - 15:  # More flexible threshold
+            elif confidence >= buy_threshold_lp - 10:  # Optimized threshold (was -15)
                 verdict = "COMPRA 🟢"
             elif confidence >= 5:
                 verdict = "NEUTRAL ⚪"

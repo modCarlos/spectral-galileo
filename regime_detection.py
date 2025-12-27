@@ -70,7 +70,7 @@ def detect_market_regime():
             # Weak trend = Sideways market
             regime = 'SIDEWAYS'
             description = 'Mercado lateral sin tendencia clara'
-            buy_threshold = 50
+            buy_threshold = 30  # Optimized from 50 via grid search
             sell_threshold = 50
             confidence = 100 - adx * 5  # Lower ADX = higher confidence in sideways
             
@@ -94,7 +94,7 @@ def detect_market_regime():
             # Mixed signals = Transition/Sideways
             regime = 'SIDEWAYS'
             description = 'Mercado en transición'
-            buy_threshold = 50
+            buy_threshold = 30  # Optimized from 50 via grid search
             sell_threshold = 50
             confidence = 50
         

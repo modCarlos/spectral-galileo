@@ -1,0 +1,122 @@
+[
+  {
+    "config": {
+      "mtf_strong_weight": 5,
+      "mtf_moderate_weight": 4,
+      "mtf_penalty": 0.85,
+      "mtf_boost": 1.15,
+      "insider_moderate_sell": -3000000.0,
+      "insider_heavy_sell": -15000000.0,
+      "insider_moderate_buy": 2000000.0,
+      "buy_threshold": 25,
+      "reddit_penalty": 0.85
+    },
+    "score": 0.6821011583011584,
+    "coverage": 0.4,
+    "avg_compra_conf": 29.602702702702707,
+    "avg_conf": 19.790270270270273,
+    "compra_count": 4,
+    "neutral_count": 6,
+    "total": 10,
+    "errors": 0,
+    "coverage_score": 0.6666666666666665,
+    "confidence_score": 0.845791505791506,
+    "selectivity": 0.2960270270270271
+  },
+  {
+    "config": {
+      "mtf_strong_weight": 7,
+      "mtf_moderate_weight": 4,
+      "mtf_penalty": 0.95,
+      "mtf_boost": 1.15,
+      "insider_moderate_sell": -5000000.0,
+      "insider_heavy_sell": -15000000.0,
+      "insider_moderate_buy": 2000000.0,
+      "buy_threshold": 30,
+      "reddit_penalty": 0.9
+    },
+    "score": 0.6821011583011584,
+    "coverage": 0.4,
+    "avg_compra_conf": 29.602702702702707,
+    "avg_conf": 19.790270270270273,
+    "compra_count": 4,
+    "neutral_count": 6,
+    "total": 10,
+    "errors": 0,
+    "coverage_score": 0.6666666666666665,
+    "confidence_score": 0.845791505791506,
+    "selectivity": 0.2960270270270271
+  },
+  {
+    "config": {
+      "mtf_strong_weight": 7,
+      "mtf_moderate_weight": 4,
+      "mtf_penalty": 0.9,
+      "mtf_boost": 1.1,
+      "insider_moderate_sell": -5000000.0,
+      "insider_heavy_sell": -8000000.0,
+      "insider_moderate_buy": 1000000.0,
+      "buy_threshold": 20,
+      "reddit_penalty": 0.85
+    },
+    "score": 0.6821011583011584,
+    "coverage": 0.4,
+    "avg_compra_conf": 29.602702702702707,
+    "avg_conf": 19.790270270270273,
+    "compra_count": 4,
+    "neutral_count": 6,
+    "total": 10,
+    "errors": 0,
+    "coverage_score": 0.6666666666666665,
+    "confidence_score": 0.845791505791506,
+    "selectivity": 0.2960270270270271
+  },
+  {
+    "config": {
+      "mtf_strong_weight": 7,
+      "mtf_moderate_weight": 3,
+      "mtf_penalty": 0.9,
+      "mtf_boost": 1.15,
+      "insider_moderate_sell": -3000000.0,
+      "insider_heavy_sell": -10000000.0,
+      "insider_moderate_buy": 500000.0,
+      "buy_threshold": 25,
+      "reddit_penalty": 0.95
+    },
+    "score": 0.6821011583011584,
+    "coverage": 0.4,
+    "avg_compra_conf": 29.602702702702707,
+    "avg_conf": 19.790270270270273,
+    "compra_count": 4,
+    "neutral_count": 6,
+    "total": 10,
+    "errors": 0,
+    "coverage_score": 0.6666666666666665,
+    "confidence_score": 0.845791505791506,
+    "selectivity": 0.2960270270270271
+  },
+  {
+    "config": {
+      "mtf_strong_weight": 7,
+      "mtf_moderate_weight": 2,
+      "mtf_penalty": 0.95,
+      "mtf_boost": 1.05,
+      "insider_moderate_sell": -5000000.0,
+      "insider_heavy_sell": -8000000.0,
+      "insider_moderate_buy": 1000000.0,
+      "buy_threshold": 35,
+      "reddit_penalty": 0.95
+    },
+    "score": 0.6821011583011584,
+    "coverage": 0.4,
+    "avg_compra_conf": 29.602702702702707,
+    "avg_conf": 19.790270270270273,
+    "compra_count": 4,
+    "neutral_count": 6,
+    "total": 10,
+    "errors": 0,
+    "coverage_score": 0.6666666666666665,
+    "confidence_score": 0.845791505791506,
+    "selectivity": 0.2960270270270271
+  }
+]
