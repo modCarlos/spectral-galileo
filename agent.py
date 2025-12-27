@@ -5,6 +5,7 @@ import indicators
 import report_generator
 import timeframe_analysis
 import regime_detection
+import reddit_sentiment
 import pandas as pd
 import random # Para Monte Carlo simplificado
 import os
@@ -351,6 +352,9 @@ class FinancialAgent:
         
         regime_data = regime_detection.detect_market_regime()
         adjusted_thresholds = regime_detection.get_regime_adjusted_thresholds(annual_volatility)
+        
+        # 2.3 Reddit Sentiment Analysis (Phase 2.1)
+        reddit_data = reddit_sentiment.get_reddit_sentiment(self.ticker_symbol, hours=24)
         
         # Extracción de métricas
         rsi = latest['RSI']
@@ -816,12 +820,12 @@ class FinancialAgent:
             confidence = confidence_pct
         
         # ============================================================
-        # PHASE 1.3: CONFLUENCE SCORING (Advanced Improvements)
-        # Multi-Timeframe + Regime Adjustments
+        # PHASE 1.3 + 2.1: CONFLUENCE SCORING (Advanced Improvements)
+        # Multi-Timeframe + Technical + Reddit Sentiment + Regime
         # ============================================================
         
         confluence_score = 0
-        confluence_max = 10
+        confluence_max = 15  # 5 MTF + 5 Technical + 5 Reddit
         
         # 1. Multi-Timeframe Confluence (5 pts max)
         if mtf_analysis and mtf_analysis.get('confluence'):
@@ -871,7 +875,53 @@ class FinancialAgent:
             alignment_signals.append('volume_trend')
             confluence_score += 1
         
-        # 3. Market Regime Adjustment
+        # 3. Reddit Sentiment (5 pts max) - PHASE 2.1
+        reddit_score = 0
+        if reddit_data and reddit_data.get('available') and reddit_data['mentions'] > 0:
+            mentions = reddit_data['mentions']
+            sentiment = reddit_data['sentiment']
+            score = reddit_data['score']
+            
+            # Score based on sentiment strength and mentions
+            if sentiment == 'BULLISH':
+                if mentions >= 20:
+                    reddit_score = 5  # High volume bullish
+                    pros.append(f"🚀 Reddit MUY BULLISH: {mentions} menciones ({score:+.0f})")
+                elif mentions >= 10:
+                    reddit_score = 4  # Medium volume bullish
+                    pros.append(f"📈 Reddit BULLISH: {mentions} menciones ({score:+.0f})")
+                elif mentions >= 5:
+                    reddit_score = 2  # Low volume bullish
+                    pros.append(f"📊 Reddit positivo: {mentions} menciones")
+                    
+            elif sentiment == 'BEARISH':
+                if mentions >= 20:
+                    reddit_score = -5  # High volume bearish (warning!)
+                    cons.append(f"🐻 Reddit MUY BEARISH: {mentions} menciones ({score:.0f})")
+                elif mentions >= 10:
+                    reddit_score = -3  # Medium volume bearish
+                    cons.append(f"📉 Reddit BEARISH: {mentions} menciones ({score:.0f})")
+                else:
+                    reddit_score = -1  # Low volume bearish
+                    
+            else:  # NEUTRAL
+                if mentions >= 10:
+                    reddit_score = 1  # Some activity but neutral
+                    pros.append(f"💬 Reddit: {mentions} menciones (neutral)")
+            
+            # Add to confluence (only positive scores)
+            if reddit_score > 0:
+                confluence_score += reddit_score
+                alignment_signals.append(f'reddit_{sentiment.lower()}')
+            elif reddit_score < -2:
+                # Significant bearish sentiment is a warning
+                confidence *= 0.85  # Reduce confidence by 15%
+                
+        elif reddit_data and reddit_data.get('available'):
+            # No mentions - could be good or bad depending on stock
+            pass  # Neutral, no impact
+        
+        # 4. Market Regime Adjustment
         if regime_data['regime'] == 'BEAR' and confidence > 60:
             confidence *= 0.80  # More conservative in bear market
             cons.append(f"🐻 Bear Market: Ajuste conservador aplicado")
@@ -1046,6 +1096,7 @@ class FinancialAgent:
             "advanced": {
                 "multi_timeframe": mtf_analysis,
                 "market_regime": regime_data,
+                "reddit_sentiment": reddit_data,
                 "confluence_score": confluence_pct if 'confluence_pct' in locals() else None,
                 "aligned_signals": alignment_signals if 'alignment_signals' in locals() else []
             },
@@ -1201,6 +1252,24 @@ class FinancialAgent:
                 report.append(f"\n🌍 Régimen de Mercado:")
                 report.append(f"   • Estado: {regime['regime']} ({regime['confidence']:.0f}% confianza)")
                 report.append(f"   • {regime['description']}")
+            
+            # Reddit Sentiment (Phase 2.1)
+            if adv.get('reddit_sentiment') and adv['reddit_sentiment'].get('available'):
+                reddit = adv['reddit_sentiment']
+                if reddit['mentions'] > 0:
+                    emoji_map = {'BULLISH': '🚀', 'BEARISH': '🐻', 'NEUTRAL': '😐'}
+                    emoji = emoji_map.get(reddit['sentiment'], '❓')
+                    
+                    report.append(f"\n📱 Reddit Sentiment (24h):")
+                    report.append(f"   • Menciones: {reddit['mentions']}")
+                    report.append(f"   • Sentiment: {emoji} {reddit['sentiment']} ({reddit['score']:+.0f})")
+                    report.append(f"   • Engagement: {reddit['engagement']:.0f}/100")
+                    report.append(f"   • Upvotes: {reddit['total_upvotes']:,} | Comentarios: {reddit['total_comments']:,}")
+                    
+                    if reddit.get('top_posts') and len(reddit['top_posts']) > 0:
+                        report.append(f"   • Top Post: \"{reddit['top_posts'][0]['title'][:60]}...\" ({reddit['top_posts'][0]['score']}↑)")
+                else:
+                    report.append(f"\n📱 Reddit Sentiment: Sin actividad reciente")
             
             # Confluence Score
             if adv.get('confluence_score') is not None:

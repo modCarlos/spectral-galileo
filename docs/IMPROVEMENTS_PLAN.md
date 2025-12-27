@@ -59,19 +59,36 @@
 
 ## Fase 2: Datos Externos (3-5 días) 📊
 
-### 2.1 Reddit/WallStreetBets Sentiment
-**API**: PRAW (gratis)  
+### 2.1 Reddit/WallStreetBets Sentiment ✅
+**STATUS**: COMPLETADO  
+**API**: requests + Reddit JSON API (sin autenticación)  
 **Datos**:
 - Menciones del ticker (últimas 24h)
 - Sentiment score (bullish/bearish)
 - Upvotes/engagement
+- Top posts de r/wallstreetbets, r/stocks, r/investing
 
 **Integración**:
 ```python
 reddit_sentiment = get_reddit_sentiment(ticker)
-if reddit_sentiment['score'] > 0.7 and reddit_sentiment['mentions'] > 100:
-    confidence += 10  # Hype detectado
+# Scoring (5 pts max):
+# - BULLISH + 20+ menciones = +5 pts
+# - BULLISH + 10+ menciones = +4 pts
+# - BEARISH + 20+ menciones = -5 pts (warning)
+# Ajustes de confianza automáticos
 ```
+
+**Implementado**:
+- `reddit_sentiment.py`: Módulo completo con análisis de sentiment
+- Integrado en `agent.py` dentro del confluence scoring
+- 5 puntos adicionales al confluence scoring (total ahora: 15 pts)
+- Warnings para sentiment bearish fuerte
+- Reporte muestra menciones, sentiment, engagement, top posts
+
+**Resultados de prueba**:
+- TSLA: 2 menciones, NEUTRAL, 100/100 engagement
+- NVDA: 2 menciones, NEUTRAL, 38/100 engagement
+- Sistema funcionando correctamente
 
 ---
 
@@ -171,15 +188,16 @@ thresholds = {
 |------|-------|------|--------|
 | 1.1 | Multi-timeframe | 0.5 | ✅ |
 | 1.2 | Regime detection | 0.5 | ✅ |
-| 1.3 | Confluence scoring | 1 | 🔄 |
-| 2.1 | Reddit sentiment | 1 | 🔲 |
+| 1.3 | Confluence scoring | 1 | ✅ |
+| 2.1 | Reddit sentiment | 1 | ✅ |
 | 2.2 | Earnings data | 1 | 🔲 |
 | 2.3 | Insider trading | 2 | 🔲 |
 | 3.1 | Backtesting | 2 | 🔲 |
 | 3.2 | Grid search | 2 | 🔲 |
 | 3.3 | Thresholds | 1 | 🔲 |
 
-**Total estimado**: 11 días de trabajo
+**Total estimado**: 11 días de trabajo  
+**Completado hasta ahora**: 2 días (Fase 1 + 2.1)
 
 ---
 

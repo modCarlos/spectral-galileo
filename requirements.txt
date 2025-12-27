@@ -5,4 +5,5 @@ textblob
 colorama
 tabulate
 google-generativeai>=0.3.0
-jinja2
+jinja2requests
+praw
