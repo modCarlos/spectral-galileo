@@ -298,12 +298,12 @@ def get_insider_confidence_adjustment(insider_data):
     elif sentiment == 'BULLISH' and net_value > 0:
         return 3, f"Moderate insider buying: {buys} transactions"
     
-    # Strong insider selling (warning)
-    elif sentiment == 'BEARISH' and net_value < -5e6:  # > $5M net selling
+    # Heavy insider selling (warning) - increased threshold to reduce noise
+    elif sentiment == 'BEARISH' and net_value < -10e6:  # > $10M net selling
         return -10, f"Heavy insider selling: ${abs(net_value)/1e6:.1f}M net"
     
-    # Moderate insider selling
-    elif sentiment == 'BEARISH' and net_value < -1e6:
+    # Moderate insider selling - increased threshold from $1M to $5M
+    elif sentiment == 'BEARISH' and net_value < -5e6:
         return -5, f"Insider selling: ${abs(net_value)/1e6:.1f}M net"
     
     return 0, None

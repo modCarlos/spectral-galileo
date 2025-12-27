@@ -850,11 +850,11 @@ class FinancialAgent:
             else:
                 cons.append(f"⚠️ Timeframes en desacuerdo ({mtf_conf['score']:.0f}%)")
                 
-            # Ajustar confidence por timeframe disagreement
+            # Ajustar confidence por timeframe disagreement (reduced penalty from 15% to 10%)
             if mtf_signal == 'SELL' and confidence > 50:
-                confidence *= 0.85  # Reduce 15% si timeframes contradicen
+                confidence *= 0.90  # Reduce 10% si timeframes contradicen (was 15%)
             elif mtf_signal == 'BUY' and confidence < 50:
-                confidence *= 1.15  # Boost 15% si timeframes confirman
+                confidence *= 1.10  # Boost 10% si timeframes confirman (was 15%)
         
         # 2. Technical Alignment (5 pts max)
         alignment_signals = []
