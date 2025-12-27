@@ -113,7 +113,8 @@ if last_earnings_surprise > 10%:
 
 ---
 
-### 2.3 Insider Trading Activity
+### 2.3 Insider Trading Activity ✅
+**STATUS**: COMPLETADO  
 **Fuente**: SEC EDGAR (gratis)  
 **Datos**:
 - Form 4 filings (últimos 90 días)
@@ -127,6 +128,8 @@ if insider_activity['net_buying'] > 0:
     confidence += 5
     pros.append(f"Insider buying: ${insider_activity['total_value']/1e6:.1f}M")
 ```
+
+**Implementado**: insider_trading.py, integrado en agent.py con confidence adjustments (+10% to -10%) based on insider sentiment
 
 ---
 
@@ -194,13 +197,34 @@ thresholds = {
 | 1.3 | Confluence scoring | 1 | ✅ |
 | 2.1 | Reddit sentiment | 1 | ✅ |
 | 2.2 | Earnings data | 1 | ✅ |
-| 2.3 | Insider trading | 2 | 🔲 |
+| 2.3 | Insider trading | 2 | ✅ |
 | 3.1 | Backtesting | 2 | 🔲 |
 | 3.2 | Grid search | 2 | 🔲 |
 | 3.3 | Thresholds | 1 | 🔲 |
 
 **Total estimado**: 11 días de trabajo  
-**Completado hasta ahora**: 3 días (Fase 1 + 2.1 + 2.2)
+**Completado hasta ahora**: 5 días (Fase 1 + Fase 2 completa)
+
+---
+
+## Estado Actual
+
+**✅ FASE 1 COMPLETADA** (Quick Wins):
+- 1.1: Multi-timeframe analysis
+- 1.2: Market regime detection
+- 1.3: Confluence scoring
+
+**✅ FASE 2 COMPLETADA** (External Data):
+- 2.1: Reddit sentiment (r/wallstreetbets, r/stocks, etc.)
+- 2.2: Earnings calendar & surprises
+- 2.3: Insider trading activity
+
+**⏸️ FASE 3 PENDIENTE** (Optimization):
+- 3.1: Backtesting comparison
+- 3.2: Grid search optimization
+- 3.3: Thresholds per category
+
+**Próximo paso**: Backtesting para validar mejoras
 
 ---
 

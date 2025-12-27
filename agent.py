@@ -7,6 +7,7 @@ import timeframe_analysis
 import regime_detection
 import reddit_sentiment
 import earnings_calendar
+import insider_trading
 import pandas as pd
 import random # Para Monte Carlo simplificado
 import os
@@ -359,6 +360,9 @@ class FinancialAgent:
         
         # 2.4 Earnings Calendar & Surprises (Phase 2.2)
         earnings_data = earnings_calendar.get_earnings_info(self.ticker_symbol)
+        
+        # 2.5 Insider Trading Activity (Phase 2.3)
+        insider_data = insider_trading.get_insider_activity(self.ticker_symbol, days=90)
         
         # Extracción de métricas
         rsi = latest['RSI']
@@ -824,8 +828,8 @@ class FinancialAgent:
             confidence = confidence_pct
         
         # ============================================================
-        # PHASE 1.3 + 2.1 + 2.2: CONFLUENCE SCORING (Advanced Improvements)
-        # Multi-Timeframe + Technical + Reddit + Earnings + Regime
+        # PHASE 1.3 + 2.1 + 2.2 + 2.3: CONFLUENCE SCORING
+        # Multi-Timeframe + Technical + Reddit + Earnings + Insider + Regime
         # ============================================================
         
         confluence_score = 0
@@ -946,7 +950,26 @@ class FinancialAgent:
             elif earnings_data.get('earnings_trend') == 'BEATING' and earnings_data.get('beat_streak', 0) >= 3:
                 pros.append(f"✅ Earnings beat streak: {earnings_data['beat_streak']}/4 quarters")
         
-        # 5. Market Regime Adjustment
+        # 5. Insider Trading Activity (Phase 2.3)
+        if insider_data and insider_data.get('available'):
+            adjustment_pct, adjustment_reason = insider_trading.get_insider_confidence_adjustment(insider_data)
+            
+            if adjustment_pct > 0:
+                confidence *= (1 + adjustment_pct/100)
+                pros.append(f"👔 {adjustment_reason}")
+            elif adjustment_pct < 0:
+                confidence *= (1 + adjustment_pct/100)
+                cons.append(f"⚠️ {adjustment_reason}")
+            
+            # Add to pros/cons based on sentiment
+            if insider_data.get('insider_sentiment') == 'BULLISH' and insider_data.get('net_value', 0) > 0:
+                if adjustment_pct == 0:  # Not already added above
+                    pros.append(f"👔 Insider buying activity: {insider_data['buy_transactions']} transactions")
+            elif insider_data.get('insider_sentiment') == 'BEARISH' and insider_data.get('net_value', 0) < 0:
+                if adjustment_pct == 0:  # Not already added above
+                    cons.append(f"👔 Insider selling detected: {insider_data['sell_transactions']} transactions")
+        
+        # 6. Market Regime Adjustment
         if regime_data['regime'] == 'BEAR' and confidence > 60:
             confidence *= 0.80  # More conservative in bear market
             cons.append(f"🐻 Bear Market: Ajuste conservador aplicado")
@@ -1123,6 +1146,7 @@ class FinancialAgent:
                 "market_regime": regime_data,
                 "reddit_sentiment": reddit_data,
                 "earnings_calendar": earnings_data,
+                "insider_trading": insider_data,
                 "confluence_score": confluence_pct if 'confluence_pct' in locals() else None,
                 "aligned_signals": alignment_signals if 'alignment_signals' in locals() else []
             },
@@ -1328,6 +1352,40 @@ class FinancialAgent:
                     
                     if earnings.get('beat_streak') and earnings['beat_streak'] > 0:
                         report.append(f"   • Beat Streak: {earnings['beat_streak']}/4 quarters")
+            
+            # Insider Trading (Phase 2.3)
+            if adv.get('insider_trading') and adv['insider_trading'].get('available'):
+                insider = adv['insider_trading']
+                if insider['total_transactions'] > 0:
+                    report.append(f"\n👔 Insider Activity (90 days):")
+                    
+                    # Transactions
+                    buys = insider['buy_transactions']
+                    sells = insider['sell_transactions']
+                    report.append(f"   • Transactions: {buys} buys, {sells} sells")
+                    
+                    # Net value
+                    net_value = insider.get('net_value', 0)
+                    if net_value > 1e6:
+                        report.append(f"   • Net Activity: 📈 +${net_value/1e6:.1f}M buying")
+                    elif net_value < -1e6:
+                        report.append(f"   • Net Activity: 📉 ${net_value/1e6:.1f}M selling")
+                    
+                    # Sentiment
+                    sentiment = insider['insider_sentiment']
+                    emoji_map = {'BULLISH': '🟢', 'BEARISH': '🔴', 'NEUTRAL': '⚪'}
+                    emoji = emoji_map.get(sentiment, '❓')
+                    report.append(f"   • Sentiment: {emoji} {sentiment}")
+                    
+                    # Large trades
+                    if insider.get('recent_large_buys') and len(insider['recent_large_buys']) > 0:
+                        top_buy = insider['recent_large_buys'][0]
+                        report.append(f"   • Top Buy: {top_buy['insider']} (${abs(top_buy['value'])/1e3:.0f}K)")
+                    elif insider.get('recent_large_sells') and len(insider['recent_large_sells']) > 0:
+                        top_sell = insider['recent_large_sells'][0]
+                        report.append(f"   • Top Sell: {top_sell['insider']} (${abs(top_sell['value'])/1e3:.0f}K)")
+                else:
+                    report.append(f"\n👔 Insider Activity: No recent transactions (90 days)")
             
             # Confluence Score
             if adv.get('confluence_score') is not None:
