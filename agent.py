@@ -6,6 +6,7 @@ import report_generator
 import timeframe_analysis
 import regime_detection
 import reddit_sentiment
+import earnings_calendar
 import pandas as pd
 import random # Para Monte Carlo simplificado
 import os
@@ -355,6 +356,9 @@ class FinancialAgent:
         
         # 2.3 Reddit Sentiment Analysis (Phase 2.1)
         reddit_data = reddit_sentiment.get_reddit_sentiment(self.ticker_symbol, hours=24)
+        
+        # 2.4 Earnings Calendar & Surprises (Phase 2.2)
+        earnings_data = earnings_calendar.get_earnings_info(self.ticker_symbol)
         
         # Extracción de métricas
         rsi = latest['RSI']
@@ -820,8 +824,8 @@ class FinancialAgent:
             confidence = confidence_pct
         
         # ============================================================
-        # PHASE 1.3 + 2.1: CONFLUENCE SCORING (Advanced Improvements)
-        # Multi-Timeframe + Technical + Reddit Sentiment + Regime
+        # PHASE 1.3 + 2.1 + 2.2: CONFLUENCE SCORING (Advanced Improvements)
+        # Multi-Timeframe + Technical + Reddit + Earnings + Regime
         # ============================================================
         
         confluence_score = 0
@@ -921,7 +925,28 @@ class FinancialAgent:
             # No mentions - could be good or bad depending on stock
             pass  # Neutral, no impact
         
-        # 4. Market Regime Adjustment
+        # 4. Earnings Calendar & Momentum (Phase 2.2)
+        if earnings_data and earnings_data.get('available'):
+            # Pre-earnings volatility reduction
+            should_reduce, reduction_factor = earnings_calendar.should_reduce_confidence_pre_earnings(earnings_data)
+            if should_reduce:
+                days = earnings_data.get('days_to_earnings')
+                confidence *= reduction_factor
+                cons.append(f"📅 Earnings en {days} días: Volatilidad esperada (-{(1-reduction_factor)*100:.0f}%)")
+            
+            # Earnings momentum boost (only if not near earnings)
+            boost_pct, boost_reason = earnings_calendar.get_earnings_confidence_boost(earnings_data)
+            if boost_pct > 0:
+                confidence *= (1 + boost_pct/100)
+                pros.append(f"📈 {boost_reason}")
+            
+            # Track earnings trend
+            if earnings_data.get('earnings_trend') == 'MISSING':
+                cons.append(f"📉 Earnings trend: Missing estimates (avg {earnings_data.get('avg_surprise_last_4q', 0):.1f}%)")
+            elif earnings_data.get('earnings_trend') == 'BEATING' and earnings_data.get('beat_streak', 0) >= 3:
+                pros.append(f"✅ Earnings beat streak: {earnings_data['beat_streak']}/4 quarters")
+        
+        # 5. Market Regime Adjustment
         if regime_data['regime'] == 'BEAR' and confidence > 60:
             confidence *= 0.80  # More conservative in bear market
             cons.append(f"🐻 Bear Market: Ajuste conservador aplicado")
@@ -1097,6 +1122,7 @@ class FinancialAgent:
                 "multi_timeframe": mtf_analysis,
                 "market_regime": regime_data,
                 "reddit_sentiment": reddit_data,
+                "earnings_calendar": earnings_data,
                 "confluence_score": confluence_pct if 'confluence_pct' in locals() else None,
                 "aligned_signals": alignment_signals if 'alignment_signals' in locals() else []
             },
@@ -1270,6 +1296,38 @@ class FinancialAgent:
                         report.append(f"   • Top Post: \"{reddit['top_posts'][0]['title'][:60]}...\" ({reddit['top_posts'][0]['score']}↑)")
                 else:
                     report.append(f"\n📱 Reddit Sentiment: Sin actividad reciente")
+            
+            # Earnings Calendar (Phase 2.2)
+            if adv.get('earnings_calendar') and adv['earnings_calendar'].get('available'):
+                earnings = adv['earnings_calendar']
+                report.append(f"\n📅 Earnings Calendar:")
+                
+                # Next earnings date
+                if earnings.get('days_to_earnings') is not None:
+                    days = earnings['days_to_earnings']
+                    if days < 0:
+                        report.append(f"   • Próximo: Ya reportado (hace {abs(days)} días)")
+                    elif days == 0:
+                        report.append(f"   • Próximo: ⚠️ HOY")
+                    elif days <= 7:
+                        report.append(f"   • Próximo: ⚠️ En {days} días (alta volatilidad)")
+                    else:
+                        report.append(f"   • Próximo: En {days} días")
+                
+                # Last surprise
+                if earnings.get('last_surprise_pct') is not None:
+                    surprise = earnings['last_surprise_pct']
+                    emoji = "✅" if surprise > 0 else "❌"
+                    report.append(f"   • Último: {emoji} {surprise:+.1f}% vs estimate")
+                
+                # Earnings trend
+                if earnings.get('earnings_trend') and earnings['earnings_trend'] != 'UNKNOWN':
+                    trend_emoji = {'BEATING': '📈', 'MISSING': '📉', 'MEETING': '➡️'}
+                    emoji = trend_emoji.get(earnings['earnings_trend'], '❓')
+                    report.append(f"   • Tendencia: {emoji} {earnings['earnings_trend']}")
+                    
+                    if earnings.get('beat_streak') and earnings['beat_streak'] > 0:
+                        report.append(f"   • Beat Streak: {earnings['beat_streak']}/4 quarters")
             
             # Confluence Score
             if adv.get('confluence_score') is not None:

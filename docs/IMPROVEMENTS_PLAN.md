@@ -92,7 +92,8 @@ reddit_sentiment = get_reddit_sentiment(ticker)
 
 ---
 
-### 2.2 Earnings Calendar + Surprises
+### 2.2 Earnings Calendar + Surprises ✅
+**STATUS**: COMPLETADO  
 **Fuente**: Yahoo Finance / yfinance  
 **Datos**:
 - Próximo earnings date
@@ -107,6 +108,8 @@ if days_to_earnings < 7:
 if last_earnings_surprise > 10%:
     pros.append("Strong earnings momentum")
 ```
+
+**Implementado**: earnings_calendar.py, integrado en agent.py con pre-earnings warnings y earnings momentum boost
 
 ---
 
@@ -190,14 +193,14 @@ thresholds = {
 | 1.2 | Regime detection | 0.5 | ✅ |
 | 1.3 | Confluence scoring | 1 | ✅ |
 | 2.1 | Reddit sentiment | 1 | ✅ |
-| 2.2 | Earnings data | 1 | 🔲 |
+| 2.2 | Earnings data | 1 | ✅ |
 | 2.3 | Insider trading | 2 | 🔲 |
 | 3.1 | Backtesting | 2 | 🔲 |
 | 3.2 | Grid search | 2 | 🔲 |
 | 3.3 | Thresholds | 1 | 🔲 |
 
 **Total estimado**: 11 días de trabajo  
-**Completado hasta ahora**: 2 días (Fase 1 + 2.1)
+**Completado hasta ahora**: 3 días (Fase 1 + 2.1 + 2.2)
 
 ---
 
