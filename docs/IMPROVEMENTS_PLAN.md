@@ -169,9 +169,9 @@ thresholds = {
 
 | Fase | Tarea | Días | Status |
 |------|-------|------|--------|
-| 1.1 | Multi-timeframe | 0.5 | 🔲 |
-| 1.2 | Regime detection | 0.5 | 🔲 |
-| 1.3 | Confluence scoring | 1 | 🔲 |
+| 1.1 | Multi-timeframe | 0.5 | ✅ |
+| 1.2 | Regime detection | 0.5 | ✅ |
+| 1.3 | Confluence scoring | 1 | 🔄 |
 | 2.1 | Reddit sentiment | 1 | 🔲 |
 | 2.2 | Earnings data | 1 | 🔲 |
 | 2.3 | Insider trading | 2 | 🔲 |

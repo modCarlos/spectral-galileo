@@ -3,6 +3,8 @@ import sentiment_analysis
 import market_data
 import indicators
 import report_generator
+import timeframe_analysis
+import regime_detection
 import pandas as pd
 import random # Para Monte Carlo simplificado
 import os
@@ -336,6 +338,19 @@ class FinancialAgent:
         # Limpiar duplicados si los hay
         self.data = self.data.loc[:, ~self.data.columns.duplicated()]
         latest = self.data.iloc[-1]
+        
+        # 2.1 Multi-Timeframe Analysis (Phase 1.1)
+        mtf_analysis = timeframe_analysis.analyze_multiple_timeframes(self.ticker_symbol)
+        
+        # 2.2 Market Regime Detection (Phase 1.2)
+        import numpy as np
+        close_prices = self.data['Close'].values[-21:]
+        returns = np.diff(close_prices) / close_prices[:-1]
+        daily_volatility = np.std(returns)
+        annual_volatility = daily_volatility * np.sqrt(252)
+        
+        regime_data = regime_detection.detect_market_regime()
+        adjusted_thresholds = regime_detection.get_regime_adjusted_thresholds(annual_volatility)
         
         # Extracción de métricas
         rsi = latest['RSI']
@@ -799,6 +814,83 @@ class FinancialAgent:
         if self.is_short_term and 'confidence_pct' in locals():
             # Use confidence_pct from Phase 4A scoring
             confidence = confidence_pct
+        
+        # ============================================================
+        # PHASE 1.3: CONFLUENCE SCORING (Advanced Improvements)
+        # Multi-Timeframe + Regime Adjustments
+        # ============================================================
+        
+        confluence_score = 0
+        confluence_max = 10
+        
+        # 1. Multi-Timeframe Confluence (5 pts max)
+        if mtf_analysis and mtf_analysis.get('confluence'):
+            mtf_conf = mtf_analysis['confluence']
+            mtf_signal = mtf_conf['overall_signal']
+            mtf_strength = mtf_conf['strength']
+            
+            if mtf_strength == 'STRONG':
+                confluence_score += 5
+                pros.append(f"📊 Confirmación Multi-Timeframe FUERTE ({mtf_conf['score']:.0f}%)")
+            elif mtf_strength == 'MODERATE':
+                confluence_score += 3
+                pros.append(f"📊 Confirmación Multi-Timeframe ({mtf_conf['score']:.0f}%)")
+            else:
+                cons.append(f"⚠️ Timeframes en desacuerdo ({mtf_conf['score']:.0f}%)")
+                
+            # Ajustar confidence por timeframe disagreement
+            if mtf_signal == 'SELL' and confidence > 50:
+                confidence *= 0.85  # Reduce 15% si timeframes contradicen
+            elif mtf_signal == 'BUY' and confidence < 50:
+                confidence *= 1.15  # Boost 15% si timeframes confirman
+        
+        # 2. Technical Alignment (5 pts max)
+        alignment_signals = []
+        
+        # RSI + MACD alignment
+        if rsi < 30 and macd > macd_signal:
+            alignment_signals.append('oversold_bullish')
+            confluence_score += 2
+        
+        # Price vs SMAs (Golden Cross)
+        if price > sma_50 and sma_50 > sma_200:
+            alignment_signals.append('golden_cross')
+            confluence_score += 2
+        elif price < sma_50 and sma_50 < sma_200:
+            alignment_signals.append('death_cross')
+            cons.append("💀 Death Cross: SMA50 < SMA200")
+        
+        # Volume + Trend confirmation
+        vol_rel = 1.0
+        avg_vol_50 = self.info.get('averageVolume', 0)
+        avg_vol_10 = self.info.get('averageVolume10days', 0)
+        if avg_vol_50 and avg_vol_10:
+            vol_rel = avg_vol_10 / avg_vol_50
+        
+        if vol_rel > 1.5 and adx > 25:
+            alignment_signals.append('volume_trend')
+            confluence_score += 1
+        
+        # 3. Market Regime Adjustment
+        if regime_data['regime'] == 'BEAR' and confidence > 60:
+            confidence *= 0.80  # More conservative in bear market
+            cons.append(f"🐻 Bear Market: Ajuste conservador aplicado")
+        elif regime_data['regime'] == 'BULL' and confidence > 40:
+            confidence *= 1.10  # More aggressive in bull market
+            pros.append(f"🐂 Bull Market: Condiciones favorables")
+        
+        # Calculate final confluence boost
+        confluence_pct = (confluence_score / confluence_max) * 100
+        if confluence_pct >= 70:
+            confidence *= 1.20  # Strong confluence: +20%
+            pros.append(f"✨ Confluencia Fuerte: {len(alignment_signals)} señales alineadas")
+        elif confluence_pct >= 50:
+            confidence *= 1.10  # Moderate confluence: +10%
+        elif confluence_pct < 30:
+            confidence *= 0.90  # Weak confluence: -10%
+        
+        # Cap confidence at 100
+        confidence = min(confidence, 100)
             
         # Aplicar TREND GATE Multiplier
         if not self.is_short_term:
@@ -812,9 +904,13 @@ class FinancialAgent:
 
         # Mapeo de Veredicto V4.1 (LP) / V2.1 (CP)
         if not self.is_short_term:
-            if confidence >= 45 and (probability_success or 0) >= 80:
+            # Use regime-adjusted thresholds for long-term
+            buy_threshold_lp = adjusted_thresholds['buy_threshold']
+            
+            # Adjust thresholds based on regime
+            if confidence >= buy_threshold_lp + 5 and (probability_success or 0) >= 80:
                 verdict = "FUERTE COMPRA 🚀"
-            elif confidence >= 25:
+            elif confidence >= buy_threshold_lp - 15:  # More flexible threshold
                 verdict = "COMPRA 🟢"
             elif confidence >= 5:
                 verdict = "NEUTRAL ⚪"
@@ -947,6 +1043,12 @@ class FinancialAgent:
                 "sell_levels": {"short_term": sell_short, "mid_term": sell_mid, "long_term": sell_long},
                 "risk_reward": rr_ratio, "horizon": horizon
             },
+            "advanced": {
+                "multi_timeframe": mtf_analysis,
+                "market_regime": regime_data,
+                "confluence_score": confluence_pct if 'confluence_pct' in locals() else None,
+                "aligned_signals": alignment_signals if 'alignment_signals' in locals() else []
+            },
             "risk_management": {
                 "atr": atr_rm,
                 "position_size_shares": position_size_shares,
@@ -1076,11 +1178,41 @@ class FinancialAgent:
         prob_str = f" [Probabilidad: {res['strategy']['probability_success']:.1f}%]" if res['strategy'].get('probability_success') is not None else ""
         report.append(f"VEREDICTO: {res['strategy']['verdict']} (Confianza: {res['strategy']['confidence']:.0f}%){prob_str}")
         
+        # Advanced Analysis Section (Phase 1)
+        if res.get('advanced'):
+            adv = res['advanced']
+            
+            # Multi-Timeframe Analysis
+            if adv.get('multi_timeframe') and adv['multi_timeframe'].get('confluence'):
+                mtf = adv['multi_timeframe']
+                conf = mtf['confluence']
+                signals = mtf['signals']
+                
+                report.append(f"\n📊 Análisis Multi-Timeframe:")
+                report.append(f"   • Daily: {signals.get('daily', 'N/A')}")
+                report.append(f"   • Weekly: {signals.get('weekly', 'N/A')}")
+                report.append(f"   • Monthly: {signals.get('monthly', 'N/A')}")
+                report.append(f"   • Confluencia: {conf['score']:.0f}% ({conf['strength']})")
+                report.append(f"   • Señal General: {conf['overall_signal']}")
+            
+            # Market Regime
+            if adv.get('market_regime'):
+                regime = adv['market_regime']
+                report.append(f"\n🌍 Régimen de Mercado:")
+                report.append(f"   • Estado: {regime['regime']} ({regime['confidence']:.0f}% confianza)")
+                report.append(f"   • {regime['description']}")
+            
+            # Confluence Score
+            if adv.get('confluence_score') is not None:
+                report.append(f"\n✨ Score de Confluencia: {adv['confluence_score']:.0f}%")
+                if adv.get('aligned_signals'):
+                    report.append(f"   • Señales alineadas: {len(adv['aligned_signals'])}")
+        
         # Explicar acción sugerida basada en el veredicto
         action_suggested = "Esperar / Observar"
         if "COMPRA" in res['strategy']['verdict']: action_suggested = "Considerar Abrir Posición (Largo)"
         elif "VENTA" in res['strategy']['verdict']: action_suggested = "Considerar Cerrar Posición / Vender"
-        report.append(f"Acción Sugerida: {action_suggested}")
+        report.append(f"\nAcción Sugerida: {action_suggested}")
         
         report.append(f"Horizonte: {res['strategy']['horizon']}")
         
