@@ -1,0 +1,429 @@
+[
+  {
+    "ticker": "MSFT",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 24.081081081081084,
+    "category": "mega_cap_stable",
+    "volatility": 18.25023113808024
+  },
+  {
+    "ticker": "ARM",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 8.854054054054053,
+    "category": "normal",
+    "volatility": 34.29899961870297
+  },
+  {
+    "ticker": "ORCL",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 9.194594594594594,
+    "category": "high_volatility",
+    "volatility": 57.796162938518435
+  },
+  {
+    "ticker": "META",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 9.194594594594594,
+    "category": "mega_cap_stable",
+    "volatility": 22.2904338126814
+  },
+  {
+    "ticker": "BABA",
+    "verdict": "COMPRA \ud83d\udfe2",
+    "confidence": 32.5945945945946,
+    "category": "normal",
+    "volatility": 26.482472996911245
+  },
+  {
+    "ticker": "WMT",
+    "verdict": "COMPRA \ud83d\udfe2",
+    "confidence": 34.73513513513514,
+    "category": "defensive",
+    "volatility": 17.862849877379023
+  },
+  {
+    "ticker": "SOFI",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 21.259459459459457,
+    "category": "high_volatility",
+    "volatility": 46.81512161854698
+  },
+  {
+    "ticker": "NVDA",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 27.000000000000004,
+    "category": "mega_cap_stable",
+    "volatility": 30.627169749650484
+  },
+  {
+    "ticker": "NKE",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 11.91891891891892,
+    "category": "high_volatility",
+    "volatility": 48.72807464912732
+  },
+  {
+    "ticker": "TSLA",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 17.951351351351352,
+    "category": "high_growth",
+    "volatility": 35.534483201299075
+  },
+  {
+    "ticker": "AMD",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 21.891891891891895,
+    "category": "normal",
+    "volatility": 36.7018176314492
+  },
+  {
+    "ticker": "NU",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 19.63636363636364,
+    "category": "normal",
+    "volatility": 27.064689624986293
+  },
+  {
+    "ticker": "AMZN",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 24.810810810810814,
+    "category": "mega_cap_stable",
+    "volatility": 18.075239130552387
+  },
+  {
+    "ticker": "RIVN",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 27.729729729729733,
+    "category": "high_volatility",
+    "volatility": 84.27469374316438
+  },
+  {
+    "ticker": "DIS",
+    "verdict": "COMPRA \ud83d\udfe2",
+    "confidence": 27.413513513513518,
+    "category": "normal",
+    "volatility": 18.019397181414217
+  },
+  {
+    "ticker": "GOOGL",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 29.189189189189193,
+    "category": "mega_cap_stable",
+    "volatility": 22.431990598523406
+  },
+  {
+    "ticker": "XOM",
+    "verdict": "COMPRA \ud83d\udfe2",
+    "confidence": 34.54054054054053,
+    "category": "normal",
+    "volatility": 19.11527271676942
+  },
+  {
+    "ticker": "OXY",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 8.184324324324322,
+    "category": "normal",
+    "volatility": 26.611350252399486
+  },
+  {
+    "ticker": "LULU",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 19.410810810810812,
+    "category": "normal",
+    "volatility": 42.36436750695919
+  },
+  {
+    "ticker": "CRM",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 23.67567567567568,
+    "category": "normal",
+    "volatility": 25.566165988693363
+  },
+  {
+    "ticker": "MPW",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 18.486486486486488,
+    "category": "normal",
+    "volatility": 26.762346132625662
+  },
+  {
+    "ticker": "BA",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 8.32258064516129,
+    "category": "normal",
+    "volatility": 39.876236486692065
+  },
+  {
+    "ticker": "JD",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 12.6,
+    "category": "normal",
+    "volatility": 11.650018911439195
+  },
+  {
+    "ticker": "NVO",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 14.870270270270272,
+    "category": "normal",
+    "volatility": 39.69799862636843
+  },
+  {
+    "ticker": "CMG",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 11.35135135135135,
+    "category": "normal",
+    "volatility": 22.22160941238814
+  },
+  {
+    "ticker": "INTC",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 22.37837837837838,
+    "category": "high_volatility",
+    "volatility": 60.88884522226964
+  },
+  {
+    "ticker": "PLD",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 24.81081081081081,
+    "category": "normal",
+    "volatility": 11.338480951939149
+  },
+  {
+    "ticker": "AAL",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 24.38709677419355,
+    "category": "normal",
+    "volatility": 32.62094968880469
+  },
+  {
+    "ticker": "FTNT",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 7.662162162162162,
+    "category": "normal",
+    "volatility": 27.489943598583118
+  },
+  {
+    "ticker": "URA",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 13.846153846153847,
+    "category": "normal",
+    "volatility": 44.52019852140307
+  },
+  {
+    "ticker": "XYZ",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 9.81324324324324,
+    "category": "normal",
+    "volatility": 34.53275710691114
+  },
+  {
+    "ticker": "HD",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 6.8108108108108105,
+    "category": "normal",
+    "volatility": 18.625890372454915
+  },
+  {
+    "ticker": "PDD",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 16.005405405405405,
+    "category": "normal",
+    "volatility": 26.498719656453503
+  },
+  {
+    "ticker": "SBUX",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 8.372903225806452,
+    "category": "normal",
+    "volatility": 29.481292555882593
+  },
+  {
+    "ticker": "BIDU",
+    "verdict": "COMPRA \ud83d\udfe2",
+    "confidence": 30.162162162162165,
+    "category": "normal",
+    "volatility": 39.408365095051266
+  },
+  {
+    "ticker": "LEN",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 16.57297297297297,
+    "category": "normal",
+    "volatility": 30.7030542263124
+  },
+  {
+    "ticker": "SONY",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 19.11891891891892,
+    "category": "normal",
+    "volatility": 16.06824612199098
+  },
+  {
+    "ticker": "O",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 21.891891891891895,
+    "category": "normal",
+    "volatility": 15.346951448133467
+  },
+  {
+    "ticker": "MMM",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 19.45945945945946,
+    "category": "normal",
+    "volatility": 17.55161134781079
+  },
+  {
+    "ticker": "GE",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 16.702702702702705,
+    "category": "normal",
+    "volatility": 28.612505080975183
+  },
+  {
+    "ticker": "AAPL",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 26.270270270270274,
+    "category": "mega_cap_stable",
+    "volatility": 12.199024422189302
+  },
+  {
+    "ticker": "JPM",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 17.272727272727273,
+    "category": "financial",
+    "volatility": 26.025739539614513
+  },
+  {
+    "ticker": "V",
+    "verdict": "COMPRA \ud83d\udfe2",
+    "confidence": 32.545945945945945,
+    "category": "financial",
+    "volatility": 23.48655010487269
+  },
+  {
+    "ticker": "MA",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 26.43243243243243,
+    "category": "financial",
+    "volatility": 20.643593407944056
+  },
+  {
+    "ticker": "GS",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 20.27027027027027,
+    "category": "financial",
+    "volatility": 21.300027176288335
+  },
+  {
+    "ticker": "UNH",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 17.027027027027028,
+    "category": "defensive",
+    "volatility": 25.582177846085813
+  },
+  {
+    "ticker": "LLY",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 16.491891891891893,
+    "category": "defensive",
+    "volatility": 23.701474810552735
+  },
+  {
+    "ticker": "JNJ",
+    "verdict": "COMPRA \ud83d\udfe2",
+    "confidence": 40.13513513513514,
+    "category": "defensive",
+    "volatility": 18.78505093037157
+  },
+  {
+    "ticker": "ABBV",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 22.727272727272727,
+    "category": "normal",
+    "volatility": 17.222258496704672
+  },
+  {
+    "ticker": "PG",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 17.027027027027028,
+    "category": "defensive",
+    "volatility": 19.909814720890655
+  },
+  {
+    "ticker": "KO",
+    "verdict": "COMPRA \ud83d\udfe2",
+    "confidence": 40.13513513513514,
+    "category": "defensive",
+    "volatility": 12.91111162959456
+  },
+  {
+    "ticker": "COST",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 13.264054054054052,
+    "category": "defensive",
+    "volatility": 18.135584567522134
+  },
+  {
+    "ticker": "MCD",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 26.12903225806452,
+    "category": "normal",
+    "volatility": 18.319277558453955
+  },
+  {
+    "ticker": "AVGO",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 21.891891891891895,
+    "category": "high_volatility",
+    "volatility": 54.433542717457804
+  },
+  {
+    "ticker": "NFLX",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 13.621621621621621,
+    "category": "normal",
+    "volatility": 29.608101866856966
+  },
+  {
+    "ticker": "ADBE",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 16.005405405405405,
+    "category": "normal",
+    "volatility": 24.854011461640063
+  },
+  {
+    "ticker": "NOW",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 14.189189189189188,
+    "category": "normal",
+    "volatility": 44.66055457030989
+  },
+  {
+    "ticker": "CAT",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 24.324324324324326,
+    "category": "normal",
+    "volatility": 31.137560087739498
+  },
+  {
+    "ticker": "VOO",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 13.448275862068968,
+    "category": "normal",
+    "volatility": 8.452662865078159
+  },
+  {
+    "ticker": "SPY",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 13.448275862068968,
+    "category": "normal",
+    "volatility": 8.470619101119594
+  },
+  {
+    "ticker": "QQQ",
+    "verdict": "NEUTRAL \u26aa",
+    "confidence": 13.448275862068968,
+    "category": "normal",
+    "volatility": 13.044340870222767
+  }
+]
