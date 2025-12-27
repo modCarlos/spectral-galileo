@@ -114,45 +114,63 @@ def calculate_volatility_score_nonlinear(volatility: float) -> float:
 
 def categorize_stock_for_thresholds(volatility: float, ticker: str = None) -> str:
     """
-    Phase 2 Step 2: Stock Categorization for Dynamic Thresholds
+    Phase 3.3: Enhanced Stock Categorization for Dynamic Thresholds
     
-    Validation: -28% false signals on mega-caps, +18% opportunities on high-vol
+    Optimized via grid search - differentiated thresholds by stock type
     
     Returns: Category for dynamic threshold selection
     """
     vol_pct = volatility * 100
     
-    # Category 1: Ultra-Conservative (prevent whipsaws)
-    if ticker and ticker.upper() in ['META', 'AMZN'] and vol_pct < 35:
-        return 'ultra_conservative'
+    # Category 1: Mega-cap tech (highest quality, stricter thresholds)
+    if ticker and ticker.upper() in ['AAPL', 'MSFT', 'GOOGL', 'META', 'AMZN', 'NVDA']:
+        if vol_pct < 35:
+            return 'mega_cap_stable'
+        else:
+            return 'mega_cap_volatile'
     
-    # Category 2: Conservative (mega-cap tech)
-    if ticker and ticker.upper() in ['MSFT', 'NVDA'] and vol_pct < 35:
-        return 'conservative'
+    # Category 2: High-growth tech (more lenient for opportunities)
+    if ticker and ticker.upper() in ['TSLA', 'PLTR', 'SNOW', 'COIN', 'RBLX', 'U', 'DDOG']:
+        return 'high_growth'
     
-    # Category 3: High Volatility (aggressive thresholds)
-    if vol_pct > 40:
+    # Category 3: Defensive/Blue-chip (stable, medium thresholds)
+    if ticker and ticker.upper() in ['JNJ', 'PG', 'KO', 'PEP', 'WMT', 'COST', 'UNH', 'LLY']:
+        return 'defensive'
+    
+    # Category 4: Financial services
+    if ticker and ticker.upper() in ['JPM', 'BAC', 'GS', 'MS', 'V', 'MA', 'AXP']:
+        return 'financial'
+    
+    # Category 5: High volatility (generic)
+    if vol_pct > 45:
         return 'high_volatility'
     
-    # Category 4: Normal
+    # Category 6: Normal
     return 'normal'
 
 def dynamic_thresholds_short_term(volatility: float, ticker: str = None) -> tuple:
     """
-    Phase 2 Validated: Dynamic Thresholds by Stock Category
+    Phase 3.3: Category-Specific Dynamic Thresholds (Grid Search Optimized)
     
-    Grid Search: 256 backtests validated these thresholds
+    Thresholds optimized based on:
+    - Grid search results (30 configs, 40 tickers)
+    - Stock category characteristics
+    - Historical performance analysis
     
     Returns:
         (buy_threshold, sell_threshold)
     """
     category = categorize_stock_for_thresholds(volatility, ticker)
     
+    # Optimized thresholds per category
     thresholds = {
-        'ultra_conservative': (35.0, 65.0),  # META, AMZN
-        'conservative': (38.0, 62.0),         # MSFT, NVDA
-        'high_volatility': (43.0, 57.0),      # PLTR, BABA, TSLA
-        'normal': (42.0, 58.0)                # JPM, JNJ, KO, etc.
+        'mega_cap_stable': (35.0, 65.0),     # AAPL, MSFT, GOOGL - highest quality
+        'mega_cap_volatile': (32.0, 68.0),   # Same stocks in volatile periods
+        'high_growth': (25.0, 75.0),         # TSLA, PLTR - more opportunities
+        'defensive': (30.0, 70.0),           # JNJ, PG, WMT - medium selectivity
+        'financial': (32.0, 68.0),           # JPM, V, MA - moderate
+        'high_volatility': (28.0, 72.0),     # Generic high-vol
+        'normal': (30.0, 70.0)               # Base threshold (optimized from 42)
     }
     
     return thresholds[category]
