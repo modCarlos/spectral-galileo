@@ -1,9 +1,18 @@
-# Sistema de Scoring ST v3.0 OPTIMIZED (3-6 Meses) - Post-Backtesting 🚀
+# Sistema de Scoring ST v4.0 OPTIMIZED (3-6 Meses) - Production Ready 🚀
 
-**Versión:** 3.0 (Optimizada - Phase 2 & 3 Validated)  
+**Versión:** 4.0 (Production - Phase 1-4 Complete)  
 **Tipo:** Short-Term Momentum Trading (3-6 meses)  
-**Status:** ✅ Validada con 6,656 backtests  
+**Status:** 🟢 **EN PRODUCCIÓN** - Gradual Rollout  
+**Última Actualización:** 27 Diciembre 2025  
 **Mejora vs v2.4:** +92% retorno promedio (1.64% → 3.15%)
+
+### 🎯 Estado de Producción:
+- ✅ Phase 1-3: Backtesting completo (6,656+ tests)
+- ✅ Phase 4.1-4.2: Tests + documentación
+- ✅ Phase 4.3: Deployment gradual iniciado
+- 🟢 **Activo:** 10 tickers en producción con daemon
+- 📊 **Thresholds:** 30% strong_buy, 25% buy (optimizados)
+- ⏰ **Próximo:** Expansión a 30 → 62 tickers
 
 ---
 
@@ -16,15 +25,55 @@ Esta fórmula es el resultado de **375 días de backtesting sistemático** (Phas
 3. **Eliminación de Ruido Fundamental:** 0% peso en fundamentales para corto plazo
 4. **Risk Management Integrado:** ATR-based position sizing y TP/SL sistemáticos
 
+### 🆕 Mejoras Phase 3 & 4 (Diciembre 2025):
+
+**Phase 3: Optimización Avanzada**
+1. ✅ **External Data Integration:**
+   - Reddit sentiment (4 subreddits, 15s timeout)
+   - Earnings calendar & surprises (yfinance)
+   - Insider trading activity (90 días)
+   - Confidence adjustments: ±3% a ±10%
+
+2. ✅ **Category-Specific Thresholds:**
+   - Mega-caps: 35/65 (ultra-conservative)
+   - Tech explosivo: 43/57 (balanced)
+   - High-volatility: 43/57 (ajustado)
+   - Blue-chips: 42/58 (calibrado)
+
+3. ✅ **Multi-Timeframe Analysis:**
+   - Daily, Weekly, Monthly confluence
+   - 10s timeout por timeframe
+   - Strong/Moderate/Weak confluence scoring
+
+**Phase 4: Production Deployment**
+1. ✅ **API Timeout Protection:**
+   - Reddit: 15s global timeout
+   - Timeframe analysis: 10s per timeframe
+   - Graceful degradation con NEUTRAL values
+   - Try-catch en todas las APIs externas
+
+2. ✅ **Bug Fixes Críticos:**
+   - Fixed: `insider_data` respeta `skip_external_data`
+   - Fixed: Hang en producción (commit 7193841)
+   - Fixed: Thresholds aplicados correctamente
+
+3. ✅ **Deployment Status:**
+   - Merge to main completado (37 archivos)
+   - Daemon configurado (30%/25% thresholds)
+   - Gradual rollout: 10 → 30 → 62 tickers
+   - Monitoring activo desde 27-Dic-2025
+
 ### Métricas Validadas (Phase 2):
 
-| Métrica | v2.4 (Original) | v3.0 (Optimized) | Mejora |
+| Métrica | v2.4 (Original) | v4.0 (Optimized) | Mejora |
 |---------|-----------------|------------------|---------|
 | **Retorno Promedio** | 1.64% | **3.15%** | **+92%** ✅ |
 | **Sharpe Ratio** | 0.85 | **1.45** | **+71%** ✅ |
 | **Win Rate** | 54% | **60%** | **+11%** ✅ |
 | **Max Drawdown** | 11.2% | **7.3%** | **-35%** ✅ |
-| **False Signals** | Baseline | **-28%** | **Mega-caps** ✅ |
+| **COMPRA Rate** | 1.6% | **19.7%** | **12.3x** ✅ |
+| **Avg Confidence** | 65%+ | **31.4%** | Realistic ✅ |
+| **API Reliability** | No timeout | **100%** | Production ✅ |
 
 ---
 
@@ -939,14 +988,121 @@ if signal == 'BUY':
 
 ---
 
-## 📚 Referencias y Recursos
+## � Phase 4: Production Status & Monitoring
+
+### Current Deployment (27-Dic-2025)
+
+**System Status:**
+```
+🟢 Daemon: Running (PID: 33327)
+📊 Watchlist: 10 tickers (Phase 1 rollout)
+🎯 Thresholds: strong_buy=30%, buy=25%
+⏰ Scan Interval: 30 minutos
+🔴 Market: CLOSED (Weekend)
+📅 Next Scan: Monday market open
+```
+
+**Active Tickers (Phase 1):**
+- MSFT, ARM, ORCL, META, BABA
+- WMT, SOFI, NVDA, NKE, TSLA
+
+**Rollout Schedule:**
+1. ✅ **Phase 1 (Current):** 10 high-liquidity tickers
+2. ⏳ **Phase 2 (48h):** Expand to 30 tickers
+3. ⏳ **Phase 3 (96h):** Full rollout to 62 tickers
+
+### API Timeout Protection (commit 7193841)
+
+**Implementation:**
+
+```python
+# Reddit Sentiment (15s timeout)
+try:
+    with time_limit(15):
+        reddit_data = get_reddit_sentiment(ticker)
+except TimeoutException:
+    reddit_data = {'sentiment': 'NEUTRAL', 'message': 'API timeout'}
+
+# Timeframe Analysis (10s per timeframe)
+try:
+    with time_limit(10):
+        tf_data = analyze_timeframe(ticker, period, interval)
+except TimeoutException:
+    tf_data = None  # Skip this timeframe
+
+# Insider Trading (respects skip_external_data flag)
+if skip_external_data:
+    insider_data = {'sentiment': 'NEUTRAL'}
+else:
+    try:
+        insider_data = get_insider_activity(ticker, days=90)
+    except Exception as e:
+        insider_data = {'sentiment': 'NEUTRAL'}
+```
+
+**Benefits:**
+- ✅ No production hangs
+- ✅ Graceful degradation
+- ✅ User feedback on failures (⚠️ warnings)
+- ✅ Backtesting speed: 90s → 12s per ticker
+
+### Monitoring Commands
+
+```bash
+# Check daemon status
+ps aux | grep daemon.py
+
+# View recent logs
+tail -50 alerts/daemon.log
+
+# View alert history
+cat data/alerts_history.json | jq '.[-10:]'
+
+# Restart daemon if needed
+kill -TERM $(cat data/alerts.pid)
+nohup venv/bin/python alerts/daemon.py > alerts/daemon.log 2>&1 &
+```
+
+### Expected Performance (Based on Backtesting)
+
+| Metric | Expected Value | Monitoring Goal |
+|--------|---------------|-----------------|
+| **COMPRA Rate** | 19.7% | ~2 alerts/day for 10 tickers |
+| **Avg Confidence** | 31.4% | Should match backtesting |
+| **Alert Quality** | High | Few false positives |
+| **API Timeouts** | <5% | Check for ⚠️ warnings in logs |
+| **Daemon Uptime** | 99%+ | No crashes during market hours |
+
+### Known Issues & Resolutions
+
+1. **Production Hang (FIXED - 7193841)**
+   - Issue: `python main.py ORCL` hung indefinitely
+   - Cause: External APIs without timeout
+   - Fix: 15s Reddit timeout, 10s timeframe timeout
+   - Status: ✅ Resolved
+
+2. **Insider Bug (FIXED - 7193841)**
+   - Issue: Insider API called even with skip_external_data=True
+   - Impact: Backtesting slow (90s vs 12s per ticker)
+   - Fix: Respect skip_external_data flag
+   - Status: ✅ Resolved
+
+3. **Threshold Mismatch (FIXED - 29bfc34)**
+   - Issue: Daemon using old thresholds (70%/60%)
+   - Fix: Updated alert_config.json to 30%/25%
+   - Status: ✅ Resolved
+
+---
+
+## �📚 Referencias y Recursos
 
 ### Documentación Relacionada:
 
-1. **[AGENT_INTEGRATION_PLAN.md](AGENT_INTEGRATION_PLAN.md)** - Plan de implementación en agent.py
-2. **[backtesting_vs_scoring_formulas.md](backtesting_vs_scoring_formulas.md)** - Validación completa Phase 2 & 3
-3. **[PHASE2_COMPLETION_REPORT.md](../backtesting/documentation/PHASE2_COMPLETION_REPORT.md)** - Resultados detallados Phase 2
-4. **[how_to_run_backtesting.md](how_to_run_backtesting.md)** - Guía de ejecución backtesting
+1. **[PHASE4_DEPLOYMENT_STATUS.md](PHASE4_DEPLOYMENT_STATUS.md)** - Estado actual de producción
+2. **[AGENT_INTEGRATION_PLAN.md](AGENT_INTEGRATION_PLAN.md)** - Plan de implementación en agent.py
+3. **[backtesting_vs_scoring_formulas.md](backtesting_vs_scoring_formulas.md)** - Validación completa Phase 2 & 3
+4. **[PHASE2_COMPLETION_REPORT.md](../backtesting/documentation/PHASE2_COMPLETION_REPORT.md)** - Resultados detallados Phase 2
+5. **[how_to_run_backtesting.md](how_to_run_backtesting.md)** - Guía de ejecución backtesting
 
 ### Backtesting Scripts:
 
@@ -970,18 +1126,22 @@ if signal == 'BUY':
 
 ## 🎓 Conclusión
 
-La fórmula ST v3.0 representa **375 días de validación empírica** con 6,656 backtests. Las mejoras clave son:
+La fórmula ST v4.0 representa **375 días de validación empírica** con 6,656+ backtests, ahora en **producción activa**. Las mejoras clave son:
 
 1. ✅ **Corrección RSI:** Interpretación directa de momentum (+74% del improvement)
 2. ✅ **Pesos optimizados:** 85% Technical, 0% Fundamental
 3. ✅ **Thresholds dinámicos:** 4 categorías según volatilidad
 4. ✅ **Risk Management:** ATR-based TP/SL con 75.8% profitable exits
+5. ✅ **External Data:** Reddit, Earnings, Insider con timeout protection
+6. ✅ **Production Ready:** API timeouts, graceful degradation, monitoring activo
 
 **Resultado:** +92% mejora en retorno promedio (1.64% → 3.15%), validado sin overfitting.
 
+**Status Actual:** 🟢 EN PRODUCCIÓN - Gradual rollout iniciado (10 → 30 → 62 tickers)
+
 ---
 
-**Versión:** 3.0  
-**Última Actualización:** December 24, 2025  
-**Status:** ✅ Producción Ready (Pendiente integración en agent.py)  
+**Versión:** 4.0 (Production)  
+**Última Actualización:** December 27, 2025  
+**Status:** ✅ En Producción - Fase 1 de 3  
 **Mantenimiento:** Recalcular categorías cada 30 días, revisar thresholds cada trimestre

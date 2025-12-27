@@ -1,9 +1,10 @@
-# Sistema de Scoring LP v5.0 OPTIMIZED (3-5 Años) - Post-Backtesting 🏛️
+# Sistema de Scoring LP v6.0 OPTIMIZED (3-5 Años) - Production Ready 🏛️
 
-**Versión:** 5.0 (Optimizada - Phase 2 & 3 Validated)  
+**Versión:** 6.0 (Production - Phase 1-4 Complete)  
 **Tipo:** Long-Term Value Investing (3-5 años)  
-**Status:** ✅ Validada con backtesting sistemático  
-**Base:** v4.2 mejorada con insights del backtesting short-term
+**Status:** 🟢 **EN PRODUCCIÓN** - Gradual Rollout  
+**Última Actualización:** 27 Diciembre 2025  
+**Base:** v5.0 + Phase 3 & 4 optimizations
 
 ---
 
@@ -25,11 +26,56 @@ Esta fórmula es la evolución del motor LP v4.2, incorporando las lecciones apr
 
 ### Mejoras Incorporadas de Backtesting:
 
+**Phase 2 (Original):**
 1. **RSI Correcto:** Interpretación de momentum validada (oversold = oportunidad)
 2. **Thresholds Dinámicos:** Adaptación por tipo de empresa (growth vs value)
 3. **Benchmarking Industrial:** Comparación sectorial refinada
 4. **Monte Carlo Validation:** Simulación probabilística de confianza
 5. **Insider Ownership:** Skin in the game como factor crítico
+
+**Phase 3 (Diciembre 2025):**
+1. ✅ **External Data Sources:**
+   - **Reddit Sentiment:** 4 subreddits (wallstreetbets, stocks, investing, StockMarket)
+     - Timeout: 15 segundos global
+     - Ajuste confianza: ±3% a ±5%
+   - **Earnings Calendar:** Próximas fechas + sorpresas recientes
+     - Ajuste por earnings beat: +3% a +8%
+     - Ajuste por earnings miss: -5% a -8%
+   - **Insider Trading:** 90 días de transacciones
+     - Strong buying (>$1M): +5% a +10%
+     - Heavy selling (>$10M): -10%
+     - Ejecutivos vs Directores ponderado
+
+2. ✅ **Multi-Timeframe Analysis:**
+   - Daily (1 año), Weekly (2 años), Monthly (5 años)
+   - Confluence scoring: Strong (3/3) = +8%, Moderate (2/3) = +4%
+   - Timeout: 10 segundos por timeframe
+   - Divergencias entre timeframes = warnings
+
+3. ✅ **Category-Specific Thresholds:**
+   - Value stocks: Thresholds más bajos (mayor tolerancia)
+   - Growth stocks: Thresholds más altos (mayor exigencia)
+   - Mega-caps: Ultra-conservative (35/65)
+   - High-volatility: Balanced (43/57)
+
+**Phase 4 (Production Hardening):**
+1. ✅ **API Reliability:**
+   - Timeout protection en todas las APIs externas
+   - Graceful degradation: NEUTRAL values en failure
+   - Try-catch global en external data calls
+   - Bug fix: `insider_data` respeta `skip_external_data=True`
+
+2. ✅ **Production Deployment:**
+   - Thresholds optimizados: 30% strong_buy, 25% buy
+   - Daemon configurado con skip_external_data=False
+   - Gradual rollout: 10 → 30 → 62 tickers
+   - Monitoring activo desde 27-Dic-2025
+
+3. ✅ **Bug Fixes Críticos:**
+   - Fixed: Sistema colgado en producción (commit 7193841)
+   - Fixed: Timeframe analysis timeout
+   - Fixed: Reddit sentiment timeout (40s → 15s max)
+   - Fixed: Insider trading always called even with skip flag
 
 ---
 
@@ -37,10 +83,11 @@ Esta fórmula es la evolución del motor LP v4.2, incorporando las lecciones apr
 
 | Categoría | Puntos Máx | Peso % | Enfoque Principal |
 |-----------|------------|--------|-------------------|
-| 📈 **Análisis Técnico** | **7.5 pts** | **50%** | Estructura de precios + Beta |
+| 📈 **Análisis Técnico** | **7.5 pts** | **50%** | Estructura + Beta + Multi-timeframe |
 | 🏛️ **Fundamentales** | **5.3 pts** | **35%** | PEG, ROE, Debt/Equity, FCF |
-| 🧠 **Sentimiento** | **2.25 pts** | **15%** | Moat + Management Quality + Earnings Surprise |
+| 🧠 **Sentimiento** | **2.25 pts** | **15%** | Reddit + Earnings + Insider + Moat |
 | 🌍 **Macro Estructural** | **Ajuste** | **Multiplier** | VIX, TNX, Yield Curve |
+| 🔌 **External Data** | **Ajuste** | **±10%** | APIs con timeout protection |
 | **TOTAL** | **15.0** | **100%** | Normalizado dinámicamente |
 
 **Nota:** A diferencia del corto plazo, en LP los fundamentales tienen peso significativo (35%) porque el valor intrínseco se manifiesta en horizontes largos.
@@ -1280,7 +1327,149 @@ print(f"Verdict: {result['verdict']}")
 
 ---
 
-## 🚨 Advertencias
+## � Phase 4: Production Status & Monitoring
+
+### Current Deployment (27-Dic-2025)
+
+**System Status:**
+```
+🟢 Daemon: Running (PID: 33327)
+📊 Watchlist: 10 tickers (Phase 1 rollout)
+🎯 Thresholds: strong_buy=30%, buy=25%
+⏰ Scan Interval: 30 minutos
+🔴 Market: CLOSED (Weekend)
+📅 Next Scan: Monday market open
+```
+
+**Active Tickers (Phase 1):**
+- MSFT, ARM, ORCL, META, BABA
+- WMT, SOFI, NVDA, NKE, TSLA
+
+**Rollout Schedule:**
+1. ✅ **Phase 1 (Current):** 10 high-liquidity tickers
+2. ⏳ **Phase 2 (48h):** Expand to 30 tickers
+3. ⏳ **Phase 3 (96h):** Full rollout to 62 tickers
+
+### External Data Integration (Phase 3)
+
+**Reddit Sentiment Analysis:**
+```python
+# 15-second timeout protection
+try:
+    with time_limit(15):
+        reddit_data = get_reddit_sentiment(ticker, hours=24)
+        # Searches 4 subreddits: wallstreetbets, stocks, investing, StockMarket
+except TimeoutException:
+    reddit_data = {'sentiment': 'NEUTRAL', 'posts': 0}
+
+# Confidence adjustment: ±3% to ±5% based on sentiment
+```
+
+**Earnings Calendar & Surprises:**
+```python
+try:
+    earnings_data = get_earnings_info(ticker)
+    # Next earnings date + recent surprise %
+    
+    # Confidence adjustments:
+    # Beat estimates: +3% to +8%
+    # Miss estimates: -5% to -8%
+except Exception:
+    earnings_data = {'next_date': None, 'recent_surprise': None}
+```
+
+**Insider Trading Activity:**
+```python
+if not skip_external_data:
+    try:
+        insider_data = get_insider_activity(ticker, days=90)
+        # Tracks: Buys, Sells, Net Value, Executives vs Directors
+        
+        # Confidence adjustments:
+        # Strong buying (>$1M net): +5% to +10%
+        # Heavy selling (>$10M net): -10%
+    except Exception:
+        insider_data = {'sentiment': 'NEUTRAL'}
+```
+
+### Multi-Timeframe Analysis
+
+**Implementation (Phase 3):**
+```python
+# Analyze 3 timeframes with 10s timeout each
+timeframes = [
+    {'name': 'Daily', 'period': '1y', 'interval': '1d'},
+    {'name': 'Weekly', 'period': '2y', 'interval': '1wk'},
+    {'name': 'Monthly', 'period': '5y', 'interval': '1mo'}
+]
+
+for tf in timeframes:
+    try:
+        with time_limit(10):
+            analysis = analyze_timeframe(ticker, tf['period'], tf['interval'])
+    except TimeoutException:
+        analysis = None  # Skip this timeframe
+
+# Confluence scoring:
+# - 3/3 agree (Strong): +8% confidence
+# - 2/3 agree (Moderate): +4% confidence
+# - Divergence (Weak): Warning + 0% adjustment
+```
+
+### Production Bug Fixes (commit 7193841)
+
+**Critical Issues Resolved:**
+
+1. **Production Hang:**
+   - Issue: `python main.py ORCL` hung indefinitely
+   - Root cause: External APIs without timeout
+   - Fix: Added timeout wrappers (15s Reddit, 10s per timeframe)
+   - Status: ✅ Resolved
+
+2. **Insider Data Bug:**
+   - Issue: `insider_data` called even with `skip_external_data=True`
+   - Impact: Backtesting slow (90s → 12s per ticker after fix)
+   - Fix: Respect skip_external_data flag
+   - Status: ✅ Resolved
+
+3. **Graceful Degradation:**
+   - All external APIs now have try-catch blocks
+   - Failures return NEUTRAL values (no crash)
+   - User feedback via ⚠️ warnings
+   - Status: ✅ Implemented
+
+### Monitoring Commands
+
+```bash
+# Check daemon status
+ps aux | grep daemon.py
+
+# View recent logs
+tail -50 alerts/daemon.log
+
+# View alert history
+cat data/alerts_history.json | jq '.[-10:]'
+
+# Manual analysis with full external data
+python main.py ORCL
+
+# Fast analysis (skip external APIs)
+python -c "from agent import FinancialAgent; a = FinancialAgent('ORCL', skip_external_data=True); print(a.run_analysis())"
+```
+
+### Expected Performance
+
+| Metric | Expected Value | Monitoring Goal |
+|--------|---------------|-----------------|
+| **COMPRA Rate** | 19.7% | ~2 alerts/day for 10 tickers |
+| **Avg Confidence** | 31.4% | Should match backtesting |
+| **External Data Hit Rate** | 95%+ | <5% timeouts acceptable |
+| **Daemon Uptime** | 99%+ | Restart on crashes |
+| **Analysis Time** | <30s | With external data |
+
+---
+
+## �🚨 Advertencias
 
 ### 1. Horizonte de 3-5 Años
 
@@ -1350,15 +1539,40 @@ La fórmula LP v5.0 es la evolución natural de v4.2, incorporando:
 2. ✅ **Benchmarking Sectorial:** PEG, ROE, Debt adaptados por industria
 3. ✅ **Moat Estructurado:** 5 categorías de ventaja competitiva
 4. ✅ **Insider Ownership Optimizado:** 5-30% es el sweet spot
-5. ✅ **Earnings Surprise:** 15% Sentiment para medir consistencia operativa (NUEVO v5.0)
+5. ✅ **Earnings Surprise:** 15% Sentiment para medir consistencia operativa
 6. ✅ **Macro Multiplicador:** Impacto moderado (0.8x-1.1x) en horizontes largos
 7. ✅ **Monte Carlo Integrado:** Validación probabilística de confianza
+8. ✅ **External Data Sources:** Reddit, Earnings, Insider con timeout protection (Phase 3)
+9. ✅ **Multi-Timeframe Analysis:** Daily/Weekly/Monthly confluence (Phase 3)
+10. ✅ **Production Hardening:** API timeouts, graceful degradation, monitoring (Phase 4)
 
 **Objetivo:** Identificar empresas de calidad (moat + fundamentales) en puntos de entrada atractivos (RSI bajo, price < SMA200) para inversión de 3-5 años.
 
+**Status Actual:** 🟢 EN PRODUCCIÓN - Gradual rollout iniciado (10 → 30 → 62 tickers)
+
 ---
 
-**Versión:** 5.0  
-**Última Actualización:** December 24, 2025  
-**Status:** ✅ Producción Ready (Pendiente integración en agent.py)  
+**Versión:** 6.0 (Production)  
+**Última Actualización:** December 27, 2025  
+**Status:** ✅ En Producción - Fase 1 de 3  
 **Mantenimiento:** Revisar benchmarks sectoriales cada año, recalcular scores cada trimestre
+
+---
+
+## 📚 Related Documentation
+
+### Core Documentation:
+1. **[PHASE4_DEPLOYMENT_STATUS.md](PHASE4_DEPLOYMENT_STATUS.md)** - Production status & monitoring
+2. **[scoring_formula_short_term_optimized.md](scoring_formula_short_term_optimized.md)** - Short-term companion formula
+3. **[backtesting_vs_scoring_formulas.md](backtesting_vs_scoring_formulas.md)** - Validation results
+4. **[AGENT_INTEGRATION_PLAN.md](AGENT_INTEGRATION_PLAN.md)** - Implementation plan
+
+### Backtesting Scripts:
+- `backtesting/scripts/agent_backtester.py` - Full backtesting implementation
+- `backtesting/scripts/parameter_optimizer.py` - Grid search optimization
+- `final_backtesting.py` - Phase 3 final validation
+
+### Production Files:
+- `agent.py` - Main trading agent with all optimizations
+- `alerts/daemon.py` - Alert daemon for continuous monitoring
+- `config/alert_config.json` - Production configuration
