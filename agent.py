@@ -162,15 +162,17 @@ def dynamic_thresholds_short_term(volatility: float, ticker: str = None) -> tupl
     """
     category = categorize_stock_for_thresholds(volatility, ticker)
     
-    # Optimized thresholds per category
+    # Optimized thresholds per category (Phase 3.3c - Final Adjustment)
+    # Adjusted to 27% for mega-caps to capture GOOGL 29.2%, NVDA 27%
+    # Target: ~20% COMPRA rate with 31-32% average confidence
     thresholds = {
-        'mega_cap_stable': (35.0, 65.0),     # AAPL, MSFT, GOOGL - highest quality
-        'mega_cap_volatile': (32.0, 68.0),   # Same stocks in volatile periods
-        'high_growth': (25.0, 75.0),         # TSLA, PLTR - more opportunities
-        'defensive': (30.0, 70.0),           # JNJ, PG, WMT - medium selectivity
-        'financial': (32.0, 68.0),           # JPM, V, MA - moderate
-        'high_volatility': (28.0, 72.0),     # Generic high-vol
-        'normal': (30.0, 70.0)               # Base threshold (optimized from 42)
+        'mega_cap_stable': (27.0, 73.0),     # Was 30 - captures GOOGL 29.2%, NVDA 27%
+        'mega_cap_volatile': (27.0, 73.0),   # Was 28 - consistency with stable
+        'high_growth': (22.0, 78.0),         # Was 25 - more opportunities
+        'defensive': (27.0, 73.0),           # Was 30 - already performing well
+        'financial': (28.0, 72.0),           # Was 32 - captures MA
+        'high_volatility': (25.0, 75.0),     # Was 28
+        'normal': (26.0, 74.0)               # Was 30 - captures MCD
     }
     
     return thresholds[category]
@@ -1027,13 +1029,15 @@ class FinancialAgent:
 
         # Mapeo de Veredicto V4.1 (LP) / V2.1 (CP)
         if not self.is_short_term:
-            # Use regime-adjusted thresholds for long-term
-            buy_threshold_lp = adjusted_thresholds['buy_threshold']
+            # Phase 3.3: Use category-specific thresholds for long-term
+            buy_threshold_category, sell_threshold_category = dynamic_thresholds_short_term(
+                annual_volatility, self.ticker_symbol
+            )
             
-            # Adjust thresholds based on regime (optimized buy_threshold via grid search)
-            if confidence >= buy_threshold_lp + 5 and (probability_success or 0) >= 80:
+            # Phase 3.3b: Adjusted thresholds for optimal 20-25% coverage
+            if confidence >= buy_threshold_category + 5 and (probability_success or 0) >= 80:
                 verdict = "FUERTE COMPRA 🚀"
-            elif confidence >= buy_threshold_lp - 10:  # Optimized threshold (was -15)
+            elif confidence >= buy_threshold_category:
                 verdict = "COMPRA 🟢"
             elif confidence >= 5:
                 verdict = "NEUTRAL ⚪"
