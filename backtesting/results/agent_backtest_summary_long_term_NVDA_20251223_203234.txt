@@ -1,0 +1,21 @@
+AGENT-BASED BACKTEST SUMMARY
+============================================================
+
+Analysis Type: long_term
+Period: 2022-07-18 → 2025-12-23
+Days: 863
+
+Portfolio Summary:
+  Initial Capital: 100000
+  Final Value: 131096.21962738037
+  Total P&L: 31096.21962738037
+  Total P&L %: 31.09621962738037
+  Realized P&L: 31096.21962738037
+  Unrealized P&L: 0.0
+  Cash: 131096.21962738037
+  Positions Value: 0.0
+  Open Positions: 0
+  Total Trades: 97
+  Winning Trades: 48
+  Losing Trades: 49
+  Win Rate: 49.48453608247423

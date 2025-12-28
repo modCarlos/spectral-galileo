@@ -1,0 +1,21 @@
+AGENT-BASED BACKTEST SUMMARY
+============================================================
+
+Analysis Type: short_term
+Period: 2025-06-25 → 2025-12-22
+Days: 126
+
+Portfolio Summary:
+  Initial Capital: 100000
+  Final Value: 128161.18294862767
+  Total P&L: 28161.18294862767
+  Total P&L %: 28.161182948627665
+  Realized P&L: 28161.18294862767
+  Unrealized P&L: 0.0
+  Cash: 128161.18294862767
+  Positions Value: 0.0
+  Open Positions: 0
+  Total Trades: 5
+  Winning Trades: 4
+  Losing Trades: 1
+  Win Rate: 80.0

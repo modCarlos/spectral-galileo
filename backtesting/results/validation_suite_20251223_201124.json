@@ -1,0 +1,23 @@
+{
+  "short_term": {
+    "AAPL": {
+      "sharpe": 0.26,
+      "win_rate": 0.0
+    },
+    "AMZN": {
+      "sharpe": -1.47,
+      "win_rate": 0.0
+    }
+  },
+  "long_term": {
+    "AAPL": {
+      "sharpe": -1.09,
+      "win_rate": 0.0
+    },
+    "AMZN": {
+      "sharpe": -0.82,
+      "win_rate": 0.0
+    }
+  },
+  "summary": {}
+}

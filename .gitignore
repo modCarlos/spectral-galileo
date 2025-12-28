@@ -1,41 +1,53 @@
-# System files
-.DS_Store
-
-# Python compiled files
-*.pyc
-*.pyo
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Virtual environment
+# Virtual Environment
 venv/
-env/
 ENV/
-
-# Backtesting Data & Results
-backtest_data/*.csv
-backtest_results/
-.backtest_cache/
-backtesting/data/*.csv
-backtesting/data/**/*.csv
-backtesting/results/*
-backtesting/optimization_results/*
-!backtesting/results/.gitkeep
-!backtesting/optimization_results/.gitkeep
+env/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+
+# Data files
+*.csv
+*.json.bak
+*.pid
 
 # Logs
 *.log
-validation_run_*.log
+logs/*.log
 
-# Cache
-.pytest_cache/
-.coverage
-*.pid
-data/alerts_state.json
+# OS
+.DS_Store
+Thumbs.db
+
+# Reports
+reports/*.html
+
+# Backtesting cache
+backtesting/data/*.csv
+!backtesting/data/.gitkeep

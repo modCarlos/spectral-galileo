@@ -10,26 +10,11 @@ from colorama import init, Fore, Style
 from tabulate import tabulate
 from tqdm import tqdm
 import warnings
-import signal
-from contextlib import contextmanager
 
 # Suprimir FutureWarnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 init(autoreset=True)
-
-class TimeoutException(Exception): pass
-
-@contextmanager
-def time_limit(seconds):
-    def signal_handler(signum, frame):
-        raise TimeoutException("Timed out!")
-    signal.signal(signal.SIGALRM, signal_handler)
-    signal.alarm(seconds)
-    try:
-        yield
-    finally:
-        signal.alarm(0)
 
 def calculate_tendency(results):
     """

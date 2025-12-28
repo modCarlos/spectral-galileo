@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backtest Report - agent_short_term_AAPL_MSFT_NVDA_GOOGL_TSLA</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .info-bar {
+            background: #f8f9fa;
+            padding: 15px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-size: 1.8em;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 5px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.1);
+        }
+        
+        .metric-card.positive {
+            border-left-color: #10b981;
+        }
+        
+        .metric-card.negative {
+            border-left-color: #ef4444;
+        }
+        
+        .metric-card.neutral {
+            border-left-color: #f59e0b;
+        }
+        
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .metric-unit {
+            font-size: 0.8em;
+            color: #999;
+            margin-left: 5px;
+        }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+        
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .trades-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .trades-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .trades-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .trade-positive {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .trade-negative {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .value-positive {
+            color: #10b981;
+        }
+        
+        .value-negative {
+            color: #ef4444;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin: 2px;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Backtest Report</h1>
+            <p>agent_short_term_AAPL_MSFT_NVDA_GOOGL_TSLA</p>
+        </header>
+        
+        <div class="info-bar">
+            <div class="info-item">
+                <div class="info-label">Total Return</div>
+                <div class="info-value value-positive">
+                    28.16%
+                </div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Annualized Return</div>
+                <div class="info-value value-positive">
+                    64.91%
+                </div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Sharpe Ratio</div>
+                <div class="info-value">2.89</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Max Drawdown</div>
+                <div class="info-value value-negative">-6.32%</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Win Rate</div>
+                <div class="info-value">0.0%</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            
+        <div class="section">
+            <h2 class="section-title">📈 Returns</h2>
+            <div class="metrics-grid">
+                <div class="metric-card positive">
+                    <div class="metric-label">Total Return</div>
+                    <div class="metric-value">28.16<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card positive">
+                    <div class="metric-label">Annualized Return</div>
+                    <div class="metric-value">64.91<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Avg Daily Return</div>
+                    <div class="metric-value">0.2040<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card positive">
+                    <div class="metric-label">Best Day</div>
+                    <div class="metric-value">3.00<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card negative">
+                    <div class="metric-label">Worst Day</div>
+                    <div class="metric-value">-3.33<span class="metric-unit">%</span></div>
+                </div>
+            </div>
+        </div>
+        
+            
+        <div class="section">
+            <h2 class="section-title">⚠️ Risk Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card neutral">
+                    <div class="metric-label">Volatility</div>
+                    <div class="metric-value">16.41<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card negative">
+                    <div class="metric-label">Maximum Drawdown</div>
+                    <div class="metric-value">-6.32<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card negative">
+                    <div class="metric-label">Average Drawdown</div>
+                    <div class="metric-value">-1.51<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Drawdown Duration</div>
+                    <div class="metric-value">11<span class="metric-unit">days</span></div>
+                </div>
+            </div>
+        </div>
+        
+            
+        <div class="section">
+            <h2 class="section-title">⚖️ Risk-Adjusted Returns</h2>
+            <div class="metrics-grid">
+                <div class="metric-card positive">
+                    <div class="metric-label">Sharpe Ratio</div>
+                    <div class="metric-value">2.89</div>
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        ✓ Good
+                    </small>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Sortino Ratio</div>
+                    <div class="metric-value">5.02</div>
+                </div>
+                <div class="metric-card positive">
+                    <div class="metric-label">Calmar Ratio</div>
+                    <div class="metric-value">10.27</div>
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        ✓ Good
+                    </small>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Recovery Factor</div>
+                    <div class="metric-value">4.46</div>
+                </div>
+            </div>
+        </div>
+        
+            
+        <div class="section">
+            <h2 class="section-title">💹 Trading Statistics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card neutral">
+                    <div class="metric-label">Total Trades</div>
+                    <div class="metric-value">0</div>
+                </div>
+                <div class="metric-card positive">
+                    <div class="metric-label">Win Rate</div>
+                    <div class="metric-value">0.0<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card positive">
+                    <div class="metric-label">Winning Trades</div>
+                    <div class="metric-value">0</div>
+                </div>
+                <div class="metric-card negative">
+                    <div class="metric-label">Losing Trades</div>
+                    <div class="metric-value">0</div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Profit Factor</div>
+                    <div class="metric-value">0.00</div>
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        ⚠ Below 1.5
+                    </small>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Avg Win</div>
+                    <div class="metric-value">$0</div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Avg Loss</div>
+                    <div class="metric-value">$0</div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Expectancy</div>
+                    <div class="metric-value">$0</div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Max Consecutive Wins</div>
+                    <div class="metric-value">0</div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Max Consecutive Losses</div>
+                    <div class="metric-value">0</div>
+                </div>
+            </div>
+        </div>
+        
+            
+        <div class="section">
+            <h2 class="section-title">📊 Return Distribution</h2>
+            <div class="metrics-grid">
+                <div class="metric-card neutral">
+                    <div class="metric-label">Mean Daily Return</div>
+                    <div class="metric-value">0.2040<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Median Daily Return</div>
+                    <div class="metric-value">0.2269<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Std Deviation</div>
+                    <div class="metric-value">1.0338<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Skewness</div>
+                    <div class="metric-value">-0.36</div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Kurtosis</div>
+                    <div class="metric-value">1.22</div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Min Daily</div>
+                    <div class="metric-value">-3.33<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card neutral">
+                    <div class="metric-label">Max Daily</div>
+                    <div class="metric-value">3.00<span class="metric-unit">%</span></div>
+                </div>
+            </div>
+        </div>
+        
+            
+            <!-- Equity Curve -->
+            <div class="section">
+                <h2 class="section-title">📈 Equity Curve</h2>
+                <div class="chart-container">
+                    <div class="chart-wrapper">
+                        <canvas id="equityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Drawdown -->
+            <div class="section">
+                <h2 class="section-title">📉 Drawdown</h2>
+                <div class="chart-container">
+                    <div class="chart-wrapper">
+                        <canvas id="drawdownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Daily Returns -->
+            <div class="section">
+                <h2 class="section-title">📊 Daily Returns Distribution</h2>
+                <div class="chart-container">
+                    <div class="chart-wrapper">
+                        <canvas id="returnsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Generated on 2025-12-23 01:08:27</p>
+            <p>Spectral Galileo Backtesting System</p>
+        </footer>
+    </div>
+    
+    <script>
+        const chartData = {"prices": [100000.0, 100000.0, 100000.0, 100000.0, 100000.0, 100344.33242231424, 101722.52531895379, 100567.70701729633, 100664.30044236997, 100701.1951488769, 101305.53541617065, 101606.38400098294, 102658.45361470678, 103455.38586242839, 103277.70274364905, 103827.38198219707, 104468.06414763426, 104948.75294464102, 105229.45466840289, 105123.00631214841, 104805.10005614784, 104592.74250822423, 105258.91165840364, 105938.75317579215, 105726.97485057004, 107167.37394134697, 104659.82470380446, 104353.74674883438, 105332.62986825155, 104921.77703910576, 107061.21154310372, 107169.43607028176, 108730.1659782371, 109402.92112214539, 109899.89033232897, 109046.64079365905, 109545.37380951022, 108850.77460236438, 109006.5906102729, 107546.39916675958, 106648.97485204884, 106677.68245730361, 108492.49934805113, 109008.16775748375, 109441.92742263408, 109723.16871738897, 109726.99103816687, 107351.21827233591, 109980.50138775169, 110377.86608322184, 111199.83416578251, 111403.09586231205, 111062.92363581, 111987.8098046375, 111937.97856305109, 113136.7299156539, 116534.84983975036, 117115.17425239764, 116631.75226100282, 117552.09877237638, 117565.78688122435, 118745.04060855771, 120190.7146736411, 119212.11993961432, 118156.53565977364, 118503.5892276011, 119663.24181298612, 119324.0438736593, 119622.90206106943, 121943.64920230668, 120332.57933815326, 120163.70681256619, 121087.98958296339, 120155.74637377482, 120428.43261752561, 120241.00639374072, 118463.95201587379, 118024.59332448374, 119293.82251728217, 119264.6749543278, 118400.09564902213, 120665.54062530356, 121249.3897361176, 121110.40119828664, 119595.72585288453, 121667.7028414265, 123143.9833810494, 125429.55788713308, 126938.38065828996, 127884.05928037471, 127392.45909535955, 127177.63667428556, 125765.9296632523, 125489.93750083013, 126030.38264539331, 123430.53330156839, 124638.07533011981, 125119.42075898591, 126154.1753737309, 123930.53422561413, 119800.54122150305, 122084.09610962507, 122044.41508540497, 121674.87233637738, 125121.21566990645, 121640.93668977176, 122968.12812370893, 124713.25290197271, 125847.25515152217, 126019.16951244157, 125149.50904256715, 126315.10096895904, 126161.20843986314, 127596.01191477239, 127559.89004184863, 127125.07397035618, 126382.63389162083, 126865.56296876927, 126800.4636035349, 126303.31435731908, 127037.7643847849, 125701.75439027806, 127054.8359485056, 125805.63285402318, 126677.76330141087, 128161.18294862767], "drawdown": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.135263107199214, -1.040305353475764, -1.0040354059973289, -0.40992877582979603, -0.11417463104330403, 0.0, 0.0, -0.17174854387534783, 0.0, 0.0, 0.0, 0.0, -0.10115832738078467, -0.40326599961224296, -0.6050702839666512, 0.0, 0.0, -0.19990637880237533, 0.0, -2.3398438772185446, -2.625451281518289, -1.7120360475564016, -2.0954109629207105, -0.09906223726388333, 0.0, 0.0, 0.0, 0.0, -0.7763879800878358, -0.322581325374141, -0.9546103520141274, -0.8128304035197794, -2.141486364046959, -2.9580698128538727, -2.9319482169469357, -1.2806118186487663, -0.8113953272825993, -0.41670915986362383, -0.16080235786005959, -0.15732435550141308, -2.319085171319156, 0.0, 0.0, 0.0, 0.0, -0.30535257918010145, 0.0, -0.04449702308968821, 0.0, 0.0, 0.0, -0.4127748555904328, 0.0, 0.0, 0.0, 0.0, -0.814201610069458, -1.6924593712508884, -1.4037069757186458, -0.4388632367211106, -0.7210796627136263, -0.47242635515852593, 0.0, -1.321159301605475, -1.4596433691987816, -0.701684446004841, -1.4661713342411962, -1.2425547330204112, -1.3962537776290773, -2.853528830074632, -3.213825322974518, -2.1729927735952885, -2.19689525900149, -2.905894301560334, -1.0481140964403284, -0.5693281041944935, -0.6833057805557983, -1.9254166697331723, -0.22629006322616188, 0.0, 0.0, 0.0, 0.0, -0.3844108388343971, -0.5523930113450513, -1.656289008216883, -1.8721033669221276, -1.449497807164045, -3.482471547952945, -2.5382240511605607, -2.1618320038837435, -1.3526970573018706, -3.0914916816120313, -6.320973938705878, -4.53532926886042, -4.566358174607856, -4.855325189814497, -2.1604284584140134, -4.8818614499211765, -3.844053108986815, -2.479438325812201, -1.5926958686750985, -1.4582660094050761, -2.1383042211791987, -1.2268599544340903, -1.3471974929528712, -0.22524102474007746, -0.25348682263468825, -0.5934948532987359, -1.1740520258761373, -0.7964216317003806, -0.8473266198597338, -1.2360765930881124, -0.661767307318881, -1.7064713947749648, -0.6484180565860159, -1.6252427691513658, -0.9432731379906711, 0.0], "returns": [0.0, 0.0, 0.0, 0.0, 0.0, 0.3443324223142408, 1.3734636161006257, -1.135263107199214, 0.09604815296925638, 0.036651232209222465, 0.6001321696334325, 0.2969715164885969, 1.0354365270135617, 0.7762948102770142, -0.17174854387534783, 0.5322341840933561, 0.6170647407319241, 0.4601298980016061, 0.2674655161552394, -0.10115832738078467, -0.3024135887596197, -0.2026213875182118, 0.6369171839308359, 0.6458754956490547, -0.19990637880237533, 1.3623761512260528, -2.3398438772185446, -0.2924502843725437, 0.9380430985129907, -0.39005275920641114, 2.0390757423033077, 0.10108658926811145, 1.4563199781435883, 0.618738266290281, 0.45425588739877426, -0.7763879800878358, 0.4573575235525844, -0.6340744323477122, 0.14314643922169798, -1.339544182914489, -0.8344531492116417, 0.026917844540562563, 1.7012151454207647, 0.47530328136171035, 0.39791482975416526, 0.25697765141581635, 0.0034836040761394398, -2.165167151083714, 2.4492345384899408, 0.3613046771528977, 0.7446856074757975, 0.1827895680370462, -0.30535257918010145, 0.8327587088021525, -0.04449702308968821, 1.0709067360257776, 3.0035514784896487, 0.4979835761107535, -0.4127748555904328, 0.7891045907584181, 0.01164429133203012, 1.003058592653956, 1.2174605841847639, -0.814201610069458, -0.8854672497858241, 0.293723547232957, 0.9785801366385273, -0.28346042960872014, 0.25045931876609373, 1.9400525327938252, -1.321159301605475, -0.1403381582243897, 0.7691863000189525, -0.769889080163351, 0.22694398893127904, -0.15563286817835179, -1.477910432691991, -0.37087965065624195, 1.0753938285633025, -0.024433421898395848, -0.7249248829435528, 1.913381035600661, 0.48385736954267716, -0.11463029886868642, -1.2506566986944614, 1.732484145036018, 1.2133709317640307, 1.8560180069953822, 1.2029244115765598, 0.7449902993724677, -0.3844108388343971, -0.1686304060691545, -1.110027712379007, -0.2194490695223777, 0.43066811198277205, -2.062875069688569, 0.9783171118617234, 0.3861945297142922, 0.8270135910700941, -1.762637773604601, -3.3325064157251783, 1.9061306942677987, -0.032503024951318175, -0.3027936581686182, 2.8324199297299906, -2.781525867936204, 1.0910730137848157, 1.4191683689843129, 0.9092876844779385, 0.13660557054852887, -0.690101730743877, 0.9313595676954978, -0.12183224960071821, 1.1372778468535125, -0.02830956264360872, -0.34087209651074085, -0.5840233209291806, 0.38211664235655374, -0.05131366125762641, -0.39207210453918323, 0.5814970345022147, -1.0516636536992205, 1.076422174686997, -0.9831999586294495, 0.693236405717747, 1.1710181870572034]};
+        
+        // Equity Chart
+        const equityCtx = document.getElementById('equityChart').getContext('2d');
+        new Chart(equityCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: chartData.prices.length}, (_, i) => i),
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: chartData.prices,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 0,
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        display: false,
+                    }
+                }
+            }
+        });
+        
+        // Drawdown Chart
+        const drawdownCtx = document.getElementById('drawdownChart').getContext('2d');
+        new Chart(drawdownCtx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: chartData.drawdown.length}, (_, i) => i),
+                datasets: [{
+                    label: 'Drawdown %',
+                    data: chartData.drawdown,
+                    backgroundColor: chartData.drawdown.map(v => v < 0 ? '#ef4444' : '#10b981'),
+                    borderRadius: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'x',
+                plugins: {
+                    legend: {
+                        display: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(1) + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        display: false,
+                    }
+                }
+            }
+        });
+        
+        // Returns Histogram
+        const returnsCtx = document.getElementById('returnsChart').getContext('2d');
+        const bins = 50;
+        const min = Math.min(...chartData.returns);
+        const max = Math.max(...chartData.returns);
+        const binWidth = (max - min) / bins;
+        const hist = Array(bins).fill(0);
+        
+        chartData.returns.forEach(r => {
+            const binIndex = Math.floor((r - min) / binWidth);
+            if (binIndex >= 0 && binIndex < bins) {
+                hist[binIndex]++;
+            }
+        });
+        
+        new Chart(returnsCtx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: bins}, (_, i) => 
+                    (min + i * binWidth).toFixed(2) + '%'
+                ),
+                datasets: [{
+                    label: 'Frequency',
+                    data: hist,
+                    backgroundColor: '#667eea',
+                    borderRadius: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'x',
+                plugins: {
+                    legend: {
+                        display: false,
+                    }
+                },
+                scales: {
+                    x: {
+                        display: false,
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+{
+  "short_term": {
+    "AAPL": {
+      "final_value": 102754.54,
+      "return": 2.75,
+      "trades": 8,
+      "win_rate": 0.0
+    },
+    "MSFT": {
+      "final_value": 99332.47,
+      "return": -0.67,
+      "trades": 8,
+      "win_rate": 0.0
+    },
+    "NVDA": {
+      "final_value": 100756.08,
+      "return": 0.76,
+      "trades": 6,
+      "win_rate": 0.0
+    },
+    "PLTR": {
+      "final_value": 103074.03,
+      "return": 3.07,
+      "trades": 24,
+      "win_rate": 0.0
+    },
+    "BABA": {
+      "final_value": 102623.3,
+      "return": 2.62,
+      "trades": 18,
+      "win_rate": 0.0
+    },
+    "TSLA": {
+      "final_value": 104404.55,
+      "return": 4.4,
+      "trades": 26,
+      "win_rate": 0.0
+    },
+    "META": {
+      "final_value": 99816.16,
+      "return": -0.18,
+      "trades": 14,
+      "win_rate": 0.0
+    },
+    "AMZN": {
+      "final_value": 100346.8,
+      "return": 0.35,
+      "trades": 14,
+      "win_rate": 0.0
+    }
+  },
+  "long_term": {
+    "AAPL": {
+      "final_value": 106232.23,
+      "return": 6.23,
+      "trades": 72,
+      "win_rate": 0.0
+    },
+    "MSFT": {
+      "final_value": 107596.89,
+      "return": 7.6,
+      "trades": 68,
+      "win_rate": 0.0
+    },
+    "NVDA": {
+      "final_value": 131096.22,
+      "return": 31.1,
+      "trades": 194,
+      "win_rate": 0.0
+    },
+    "PLTR": {
+      "final_value": 143347.36,
+      "return": 43.35,
+      "trades": 236,
+      "win_rate": 0.0
+    },
+    "BABA": {
+      "final_value": 107963.15,
+      "return": 7.96,
+      "trades": 160,
+      "win_rate": 0.0
+    },
+    "TSLA": {
+      "final_value": 111649.59,
+      "return": 11.65,
+      "trades": 264,
+      "win_rate": 0.0
+    },
+    "META": {
+      "final_value": 119912.81,
+      "return": 19.91,
+      "trades": 126,
+      "win_rate": 0.0
+    },
+    "AMZN": {
+      "final_value": 107263.52,
+      "return": 7.26,
+      "trades": 104,
+      "win_rate": 0.0
+    }
+  },
+  "summary": {}
+}
