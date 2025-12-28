@@ -31,6 +31,33 @@ def time_limit(seconds):
     finally:
         signal.alarm(0)
 
+def calculate_tendency(results):
+    """
+    Calcula la tendencia para veredictos NEUTRAL/MANTENER.
+    Retorna si está más cerca de COMPRA o VENTA con la distancia en puntos.
+    """
+    verdict = results['strategy']['verdict']
+    confidence = results['strategy']['confidence']
+    buy_threshold = results['strategy'].get('buy_threshold')
+    sell_threshold = results['strategy'].get('sell_threshold')
+    
+    # Si no es NEUTRAL o faltan thresholds, retornar N/A
+    if 'NEUTRAL' not in verdict and 'MANTENER' not in verdict and 'HOLD' not in verdict:
+        return "—"
+    if not buy_threshold or not sell_threshold:
+        return "—"
+    
+    # Calcular distancias
+    dist_to_buy = abs(confidence - buy_threshold)
+    dist_to_sell = abs(confidence - sell_threshold)
+    
+    # Determinar tendencia con distancia
+    if dist_to_buy < dist_to_sell:
+        return f"{Fore.GREEN}→ COMPRA ({dist_to_buy:.1f} pts){Style.RESET_ALL}"
+    else:
+        return f"{Fore.RED}→ VENTA ({dist_to_sell:.1f} pts){Style.RESET_ALL}"
+
+
 def run_portfolio_scanner(is_short_term=False, generate_html=False):
     """
     Escanea el portafolio completo y muestra un resumen optimizado.
@@ -82,15 +109,18 @@ def run_portfolio_scanner(is_short_term=False, generate_html=False):
         pnl_str = f"{pnl_pct:+.2f}%"
         pnl_col = Fore.GREEN if pnl_pct > 0 else Fore.RED
         
+        # Calcular tendencia
+        tendency = calculate_tendency(res)
+        
         advice = "Mantener"
         if "COMPRA" in verdict:
             advice = f"{Fore.GREEN}Promediar Baja{Style.RESET_ALL}" if pnl_pct < 0 else f"{Fore.CYAN}Aumentar{Style.RESET_ALL}"
         elif "VENTA" in verdict:
             advice = f"{Fore.GREEN}Tomar Ganancia{Style.RESET_ALL}" if pnl_pct > 0 else f"{Fore.RED}Vender / SL{Style.RESET_ALL}"
             
-        results_list.append([t, f"${buy_price:.2f}", f"${curr_price:.2f}", f"{pnl_col}{pnl_str}{Style.RESET_ALL}", verdict, f"{confidence:.0f}%", advice])
+        results_list.append([t, f"${buy_price:.2f}", f"${curr_price:.2f}", f"{pnl_col}{pnl_str}{Style.RESET_ALL}", verdict, f"{confidence:.0f}%", tendency, advice])
 
-    headers = ["Ticker", "Compra", "Actual", "P&L", "Veredicto", "Confianza", "Consejo"]
+    headers = ["Ticker", "Compra", "Actual", "P&L", "Veredicto", "Confianza", "Tendencia", "Consejo"]
     print("\n" + "="*80)
     print(f"ESTADO DEL PORTAFOLIO")
     print("="*80 + "\n")
@@ -155,13 +185,16 @@ def run_watchlist_scanner(is_short_term=False, generate_html=False):
         confidence = res['strategy']['confidence']
         v_color = Fore.GREEN if "COMPRA" in verdict else Fore.RED if "VENTA" in verdict else Fore.WHITE
         
-        table_data.append([symbol, f"${res['current_price']:.2f}", f"{v_color}{verdict}{Style.RESET_ALL}", f"{confidence:.0f}%"])
+        # Calcular tendencia
+        tendency = calculate_tendency(res)
+        
+        table_data.append([symbol, f"${res['current_price']:.2f}", f"{v_color}{verdict}{Style.RESET_ALL}", f"{confidence:.0f}%", tendency])
     
     # Ordenar por confianza descendente
     table_data.sort(key=lambda x: float(x[3].rstrip('%')), reverse=True)
             
     if table_data:
-        full_table = tabulate(table_data, headers=["Ticker", "Precio", "Veredicto", "Confianza"], tablefmt="fancy_grid")
+        full_table = tabulate(table_data, headers=["Ticker", "Precio", "Veredicto", "Confianza", "Tendencia"], tablefmt="fancy_grid")
         print("\n" + full_table + "\n")
         
         # Resumen por veredicto
