@@ -562,13 +562,27 @@ def main():
 EJEMPLOS DE USO:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📊 ANÁLISIS:
-  python main.py AAPL                    Análisis Estructural (Horizonte: 3-5 años)
-  python main.py AAPL -st                Análisis Táctico (Horizonte: 3-6 meses) + ADX/Trend Gate
-  python main.py VOO --etf               Análisis de ETF (80% técnico, 20% macro)
-  python main.py QQQ --etf -st           Análisis de ETF en corto plazo
-  python main.py -s                      Escanear Top 25 (Largo Plazo)
-  python main.py -s -st                  Escanear con enfoque táctico (Corto Plazo)
+📊 ANÁLISIS - BÁSICO vs COMPLETO:
+  
+  🎯 MODO BÁSICO (por defecto) - Rápido y directo:
+     python main.py AAPL                 Info esencial para decidir (opinión, veredicto, pros/cons, guía)
+     python main.py AAPL -st             Básico en modo corto plazo (3-6 meses)
+     
+  📈 MODO COMPLETO (con -f) - Análisis profundo:
+     python main.py AAPL -f              TODO: técnicos, fundamentos, dividendos, macro, niveles
+     python main.py AAPL -st -f          Análisis táctico completo con todos los detalles
+     
+  📑 Diferencias clave:
+     • Básico:   Opinión + Veredicto + Tendencia (NEUTRAL) + Pros/Cons + Guía Decisión
+     • Completo: Todo lo básico + RSI/MACD/Stoch + Fundamentos + Dividendos + Macro + Niveles
+
+  🔄 ETFs:
+     python main.py VOO --etf            Análisis de ETF básico (80% técnico, 20% macro)
+     python main.py VOO --etf -f         Análisis de ETF completo
+     
+  🔍 Escaneo de mercado:
+     python main.py -s                   Escanear Top 25 (Largo Plazo)
+     python main.py -s -st               Escanear con enfoque táctico (Corto Plazo)
 
 💼 PORTAFOLIO:
   python main.py -p                      Ver estado de tu portafolio
@@ -625,6 +639,8 @@ SISTEMA DE EXCELENCIA 2.0:
                         help='Modo corto plazo (3-6 meses). Combina con cualquier comando')
     parser.add_argument('--etf', action='store_true',
                         help='Modo ETF (prioriza análisis técnico, skip fundamentales complejos)')
+    parser.add_argument('-f', '--full', action='store_true',
+                        help='Análisis completo (incluye técnicos detallados, fundamentos, macro, etc)')
     
     # Watchlist
     parser.add_argument('-w', '--watch', type=str, metavar='TICKER',
@@ -825,7 +841,7 @@ SISTEMA DE EXCELENCIA 2.0:
             if "error" in results:
                 print(f"\n{Fore.RED}Error al analizar {args.ticker}: {results['error']}{Style.RESET_ALL}\n")
             else:
-                print(agent.get_report_string())
+                print(agent.get_report_string(full_analysis=args.full))
                 
                 # Generar HTML si se solicitó
                 if args.html:

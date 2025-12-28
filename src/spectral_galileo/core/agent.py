@@ -1043,11 +1043,16 @@ class FinancialAgent:
             probability_success = sum(1 for s in sims if s >= 25) / 100 * 100 # Barrera de éxito consistente con umbral de Compra (25%)
 
         # Mapeo de Veredicto V4.1 (LP) / V2.1 (CP)
+        buy_threshold_used = None
+        sell_threshold_used = None
+        
         if not self.is_short_term:
             # Phase 3.3: Use category-specific thresholds for long-term
             buy_threshold_category, sell_threshold_category = dynamic_thresholds_short_term(
                 annual_volatility, self.ticker_symbol
             )
+            buy_threshold_used = buy_threshold_category
+            sell_threshold_used = sell_threshold_category
             
             # Phase 3.3b: Adjusted thresholds for optimal 20-25% coverage
             if confidence >= buy_threshold_category + 5 and (probability_success or 0) >= 80:
@@ -1073,6 +1078,8 @@ class FinancialAgent:
             buy_threshold, sell_threshold = dynamic_thresholds_short_term(
                 annual_volatility, self.ticker_symbol
             )
+            buy_threshold_used = buy_threshold
+            sell_threshold_used = sell_threshold
             
             # Generate signal using validated thresholds
             if final_score_st < buy_threshold:
@@ -1183,7 +1190,9 @@ class FinancialAgent:
                 "verdict": verdict, "confidence": confidence, "probability_success": probability_success,
                 "pros": pros, "cons": cons, "stop_loss": stop_loss, "buy_levels": buy_levels,
                 "sell_levels": {"short_term": sell_short, "mid_term": sell_mid, "long_term": sell_long},
-                "risk_reward": rr_ratio, "horizon": horizon
+                "risk_reward": rr_ratio, "horizon": horizon,
+                "buy_threshold": buy_threshold_used,
+                "sell_threshold": sell_threshold_used
             },
             "advanced": {
                 "multi_timeframe": mtf_analysis,
@@ -1211,7 +1220,14 @@ class FinancialAgent:
         }
         return self.analysis_results
 
-    def get_report_string(self):
+    def get_report_string(self, full_analysis=False):
+        """
+        Genera el reporte de análisis.
+        
+        Args:
+            full_analysis (bool): Si True, muestra análisis completo con todos los técnicos.
+                                 Si False (default), muestra solo info esencial para decisión.
+        """
         if not self.analysis_results:
             return "No analysis run yet."
         
@@ -1325,37 +1341,38 @@ class FinancialAgent:
         report.append(f"{Fore.WHITE}{human_analysis}{Style.RESET_ALL}")
         
         # ═══════════════════════════════════════════════════════════════
-        # 1. ANÁLISIS TÉCNICO (con tabla)
+        # 1. ANÁLISIS TÉCNICO (con tabla) - SOLO EN MODO COMPLETO
         # ═══════════════════════════════════════════════════════════════
-        report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}📈 1. ANÁLISIS TÉCNICO{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        
-        # Crear tabla de indicadores técnicos
-        from tabulate import tabulate
-        
-        rsi = res['technical']['rsi']
-        rsi_status = 'Sobrecompra' if rsi > 70 else 'Sobreventa' if rsi < 30 else 'Neutral'
-        rsi_color = Fore.RED if rsi > 70 else Fore.GREEN if rsi < 30 else Fore.YELLOW
-        
-        trend = 'Alcista' if res['current_price'] > res['technical']['sma_200'] else 'Bajista'
-        trend_color = Fore.GREEN if trend == 'Alcista' else Fore.RED
-        
-        macd_status = res['technical']['macd_status']
-        macd_color = Fore.GREEN if 'Bullish' in macd_status else Fore.RED if 'Bearish' in macd_status else Fore.YELLOW
-        
-        stoch_k = res['technical']['stoch_k']
-        stoch_status = 'Sobrecompra' if stoch_k > 80 else 'Sobreventa' if stoch_k < 20 else 'Neutral'
-        stoch_color = Fore.RED if stoch_k > 80 else Fore.GREEN if stoch_k < 20 else Fore.YELLOW
-        
-        tech_data = [
-            [f"{Fore.WHITE}RSI (14){Style.RESET_ALL}", f"{rsi_color}{rsi:.2f}{Style.RESET_ALL}", f"{rsi_color}{rsi_status}{Style.RESET_ALL}"],
-            [f"{Fore.WHITE}Tendencia (SMA200){Style.RESET_ALL}", f"{Fore.WHITE}${res['technical']['sma_200']:.2f}{Style.RESET_ALL}", f"{trend_color}{trend}{Style.RESET_ALL}"],
-            [f"{Fore.WHITE}MACD{Style.RESET_ALL}", f"{macd_color}{macd_status}{Style.RESET_ALL}", ""],
-            [f"{Fore.WHITE}Estocástico K{Style.RESET_ALL}", f"{stoch_color}{stoch_k:.2f}{Style.RESET_ALL}", f"{stoch_color}{stoch_status}{Style.RESET_ALL}"],
-        ]
-        
-        report.append(tabulate(tech_data, headers=[f"{Fore.CYAN}Indicador{Style.RESET_ALL}", f"{Fore.CYAN}Valor{Style.RESET_ALL}", f"{Fore.CYAN}Estado{Style.RESET_ALL}"], tablefmt="simple"))
+        if full_analysis:
+            report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}📈 1. ANÁLISIS TÉCNICO{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            
+            # Crear tabla de indicadores técnicos
+            from tabulate import tabulate
+            
+            rsi = res['technical']['rsi']
+            rsi_status = 'Sobrecompra' if rsi > 70 else 'Sobreventa' if rsi < 30 else 'Neutral'
+            rsi_color = Fore.RED if rsi > 70 else Fore.GREEN if rsi < 30 else Fore.YELLOW
+            
+            trend = 'Alcista' if res['current_price'] > res['technical']['sma_200'] else 'Bajista'
+            trend_color = Fore.GREEN if trend == 'Alcista' else Fore.RED
+            
+            macd_status = res['technical']['macd_status']
+            macd_color = Fore.GREEN if 'Bullish' in macd_status else Fore.RED if 'Bearish' in macd_status else Fore.YELLOW
+            
+            stoch_k = res['technical']['stoch_k']
+            stoch_status = 'Sobrecompra' if stoch_k > 80 else 'Sobreventa' if stoch_k < 20 else 'Neutral'
+            stoch_color = Fore.RED if stoch_k > 80 else Fore.GREEN if stoch_k < 20 else Fore.YELLOW
+            
+            tech_data = [
+                [f"{Fore.WHITE}RSI (14){Style.RESET_ALL}", f"{rsi_color}{rsi:.2f}{Style.RESET_ALL}", f"{rsi_color}{rsi_status}{Style.RESET_ALL}"],
+                [f"{Fore.WHITE}Tendencia (SMA200){Style.RESET_ALL}", f"{Fore.WHITE}${res['technical']['sma_200']:.2f}{Style.RESET_ALL}", f"{trend_color}{trend}{Style.RESET_ALL}"],
+                [f"{Fore.WHITE}MACD{Style.RESET_ALL}", f"{macd_color}{macd_status}{Style.RESET_ALL}", ""],
+                [f"{Fore.WHITE}Estocástico K{Style.RESET_ALL}", f"{stoch_color}{stoch_k:.2f}{Style.RESET_ALL}", f"{stoch_color}{stoch_status}{Style.RESET_ALL}"],
+            ]
+            
+            report.append(tabulate(tech_data, headers=[f"{Fore.CYAN}Indicador{Style.RESET_ALL}", f"{Fore.CYAN}Valor{Style.RESET_ALL}", f"{Fore.CYAN}Estado{Style.RESET_ALL}"], tablefmt="simple"))
         
         # ═══════════════════════════════════════════════════════════════
         # 2. VEREDICTO Y ESTRATEGIA (destacado con colores)
@@ -1386,8 +1403,8 @@ class FinancialAgent:
         
         report.append(f"\n{verdict_emoji} {verdict_color}{Style.BRIGHT}VEREDICTO: {verdict_text}{Style.RESET_ALL} {conf_color}(Confianza: {confidence:.0f}%){Style.RESET_ALL}{prob_str}\n")
         
-        # Advanced Analysis Section (Phase 1)
-        if res.get('advanced'):
+        # Advanced Analysis Section (Phase 1) - SOLO EN MODO COMPLETO
+        if full_analysis and res.get('advanced'):
             adv = res['advanced']
             
             # Multi-Timeframe Analysis
@@ -1516,6 +1533,105 @@ class FinancialAgent:
         report.append(f"{Fore.WHITE}Horizonte: {res['strategy']['horizon']}{Style.RESET_ALL}")
         
         # ═══════════════════════════════════════════════════════════════
+        # ANÁLISIS DE TENDENCIA (cuando es NEUTRAL/HOLD)
+        # ═══════════════════════════════════════════════════════════════
+        verdict_text = res['strategy']['verdict']
+        if 'NEUTRAL' in verdict_text or 'HOLD' in verdict_text:
+            confidence_val = res['strategy']['confidence']
+            buy_thresh = res['strategy'].get('buy_threshold')
+            sell_thresh = res['strategy'].get('sell_threshold')
+            
+            if buy_thresh is not None and sell_thresh is not None:
+                report.append(f"\n{Fore.YELLOW}{'═' * 70}{Style.RESET_ALL}")
+                report.append(f"{Fore.YELLOW}{Style.BRIGHT}📊 ANÁLISIS DE TENDENCIA (Zona Neutral){Style.RESET_ALL}")
+                report.append(f"{Fore.YELLOW}{'═' * 70}{Style.RESET_ALL}")
+                
+                # Calcular distancias
+                dist_to_buy = abs(confidence_val - buy_thresh)
+                dist_to_sell = abs(confidence_val - sell_thresh)
+                
+                # Determinar tendencia
+                if dist_to_buy < dist_to_sell:
+                    tendency = "COMPRA"
+                    tendency_emoji = "🟢"
+                    tendency_color = Fore.GREEN
+                    closest_threshold = buy_thresh
+                    distance = dist_to_buy
+                    direction_text = f"tendencia hacia {tendency_emoji} {tendency}"
+                else:
+                    tendency = "VENTA"
+                    tendency_emoji = "🔴"
+                    tendency_color = Fore.RED
+                    closest_threshold = sell_thresh
+                    distance = dist_to_sell
+                    direction_text = f"tendencia hacia {tendency_emoji} {tendency}"
+                
+                # Interpretar qué tan cerca está
+                if distance <= 3:
+                    proximity = "MUY CERCA"
+                    proximity_emoji = "⚠️"
+                    proximity_color = Fore.RED
+                    advice = f"Podría cambiar a {tendency} con pequeñas variaciones del mercado"
+                elif distance <= 7:
+                    proximity = "CERCA"
+                    proximity_emoji = "⚡"
+                    proximity_color = Fore.YELLOW
+                    advice = f"Observar de cerca - movimiento moderado podría cambiar señal a {tendency}"
+                elif distance <= 15:
+                    proximity = "MODERADA"
+                    proximity_emoji = "📍"
+                    proximity_color = Fore.CYAN
+                    advice = f"Posición neutral estable - necesitaría cambio significativo para {tendency}"
+                else:
+                    proximity = "LEJOS"
+                    proximity_emoji = "🔵"
+                    proximity_color = Fore.BLUE
+                    advice = f"Posición muy neutral - poco probable cambio inmediato a {tendency}"
+                
+                report.append(f"\n{Fore.WHITE}  {Style.BRIGHT}Posición Actual:{Style.RESET_ALL}")
+                report.append(f"    {Fore.CYAN}Confianza: {confidence_val:.1f}%{Style.RESET_ALL}")
+                report.append(f"    {Fore.GREEN}Umbral COMPRA: ≥{buy_thresh:.1f}%{Style.RESET_ALL}")
+                report.append(f"    {Fore.RED}Umbral VENTA: ≤{sell_thresh:.1f}%{Style.RESET_ALL}")
+                
+                report.append(f"\n{tendency_color}  {tendency_emoji} Tendencia Detectada:{Style.RESET_ALL} {tendency_color}{Style.BRIGHT}{direction_text}{Style.RESET_ALL}")
+                report.append(f"{proximity_color}  {proximity_emoji} Distancia: {distance:.1f} puntos - {proximity}{Style.RESET_ALL}")
+                
+                report.append(f"\n{Fore.WHITE}  💡 Interpretación:{Style.RESET_ALL}")
+                report.append(f"    {Fore.WHITE}• Distancia a {tendency}: {Fore.CYAN}{distance:.1f} puntos{Style.RESET_ALL}")
+                if tendency == "COMPRA":
+                    report.append(f"    {Fore.WHITE}• Distancia a VENTA: {Fore.CYAN}{dist_to_sell:.1f} puntos{Style.RESET_ALL}")
+                else:
+                    report.append(f"    {Fore.WHITE}• Distancia a COMPRA: {Fore.CYAN}{dist_to_buy:.1f} puntos{Style.RESET_ALL}")
+                
+                report.append(f"\n{proximity_color}  {proximity_emoji} {Style.BRIGHT}Recomendación:{Style.RESET_ALL} {Fore.WHITE}{advice}{Style.RESET_ALL}")
+                
+                # Barra visual de posición
+                total_range = 100
+                position_pct = (confidence_val / total_range) * 100
+                bar_length = 50
+                filled = int((confidence_val / total_range) * bar_length)
+                
+                buy_pos = int((buy_thresh / total_range) * bar_length)
+                sell_pos = int((sell_thresh / total_range) * bar_length)
+                
+                bar = []
+                for i in range(bar_length):
+                    if i == filled:
+                        bar.append(f"{Fore.YELLOW}●{Style.RESET_ALL}")
+                    elif i == buy_pos:
+                        bar.append(f"{Fore.GREEN}↑{Style.RESET_ALL}")
+                    elif i == sell_pos:
+                        bar.append(f"{Fore.RED}↓{Style.RESET_ALL}")
+                    elif i < filled:
+                        bar.append(f"{Fore.CYAN}━{Style.RESET_ALL}")
+                    else:
+                        bar.append(f"{Fore.WHITE}━{Style.RESET_ALL}")
+                
+                report.append(f"\n{Fore.WHITE}  Posición Visual:{Style.RESET_ALL}")
+                report.append(f"    0% {''.join(bar)} 100%")
+                report.append(f"    {Fore.RED}   ↓=Venta{Style.RESET_ALL}   {Fore.YELLOW}●=Actual{Style.RESET_ALL}   {Fore.GREEN}↑=Compra{Style.RESET_ALL}")
+        
+        # ═══════════════════════════════════════════════════════════════
         # PROS Y CONS (mejorados con colores)
         # ═══════════════════════════════════════════════════════════════
         report.append(f"\n{Fore.GREEN}{'─' * 70}{Style.RESET_ALL}")
@@ -1629,115 +1745,122 @@ class FinancialAgent:
         report.append(f"{Fore.WHITE}     {Style.BRIGHT}probablemente la señal no es lo suficientemente fuerte. Espera.{Style.RESET_ALL}")
 
         # ═══════════════════════════════════════════════════════════════
-        # 3. ANÁLISIS FUNDAMENTAL (con tabla)
+        # 3. ANÁLISIS FUNDAMENTAL (con tabla) - SOLO EN MODO COMPLETO
         # ═══════════════════════════════════════════════════════════════
-        report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}💼 3. ANÁLISIS FUNDAMENTAL{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        
-        fund_data = [
-            [f"{Fore.WHITE}P/E Ratio{Style.RESET_ALL}", f"{Fore.WHITE}{res['fundamental']['pe']}{Style.RESET_ALL}"],
-            [f"{Fore.WHITE}PEG Ratio{Style.RESET_ALL}", f"{Fore.WHITE}{res['fundamental']['peg']}{Style.RESET_ALL}"],
-            [f"{Fore.WHITE}Recomendación Analistas{Style.RESET_ALL}", f"{Fore.GREEN if 'buy' in str(res['fundamental']['recommendation_key']).lower() else Fore.YELLOW}{res['fundamental']['recommendation_key']}{Style.RESET_ALL}"],
-        ]
-        report.append(tabulate(fund_data, tablefmt="simple"))
-        
-        # ═══════════════════════════════════════════════════════════════
-        # 4. DIVIDENDOS (mejorado con colores)
-        # ═══════════════════════════════════════════════════════════════
-        report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}💰 4. DIVIDENDOS{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        div_yield = self.info.get('dividendYield')
-        div_rate = self.info.get('dividendRate')
-        payout_ratio = self.info.get('payoutRatio')
-        
-        if div_yield and div_yield > 0:
-            report.append(f"{Fore.GREEN}✅ Otorga Dividendos: SÍ{Style.RESET_ALL}")
+        if full_analysis:
+            report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}💼 3. ANÁLISIS FUNDAMENTAL{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
             
-            # yfinance a veces devuelve el yield ya multiplicado por 100, otras veces como decimal
-            # Si yield > 1, asumir que ya está en porcentaje
-            if div_yield > 1:
-                yield_pct = div_yield
-            else:
-                yield_pct = div_yield * 100
+            fund_data = [
+                [f"{Fore.WHITE}P/E Ratio{Style.RESET_ALL}", f"{Fore.WHITE}{res['fundamental']['pe']}{Style.RESET_ALL}"],
+                [f"{Fore.WHITE}PEG Ratio{Style.RESET_ALL}", f"{Fore.WHITE}{res['fundamental']['peg']}{Style.RESET_ALL}"],
+                [f"{Fore.WHITE}Recomendación Analistas{Style.RESET_ALL}", f"{Fore.GREEN if 'buy' in str(res['fundamental']['recommendation_key']).lower() else Fore.YELLOW}{res['fundamental']['recommendation_key']}{Style.RESET_ALL}"],
+            ]
+            report.append(tabulate(fund_data, tablefmt="simple"))
+        
+            # ═══════════════════════════════════════════════════════════════
+            # 4. DIVIDENDOS (mejorado con colores) - SOLO EN MODO COMPLETO
+            # ═══════════════════════════════════════════════════════════════
+            report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}💰 4. DIVIDENDOS{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            div_yield = self.info.get('dividendYield')
+            div_rate = self.info.get('dividendRate')
+            payout_ratio = self.info.get('payoutRatio')
+            
+            if div_yield and div_yield > 0:
+                report.append(f"{Fore.GREEN}✅ Otorga Dividendos: SÍ{Style.RESET_ALL}")
                 
-            report.append(f"   {Fore.WHITE}Rendimiento: {Fore.GREEN}{yield_pct:.2f}%{Style.RESET_ALL}")
-            if div_rate:
-                report.append(f"   {Fore.WHITE}Pago Anual: {Fore.GREEN}${div_rate:.2f}{Style.RESET_ALL} por acción")
-            if payout_ratio:
-                # Mismo tratamiento para payout ratio
-                payout_pct = payout_ratio if payout_ratio > 1 else payout_ratio * 100
-                report.append(f"   {Fore.WHITE}Payout Ratio: {Fore.YELLOW}{payout_pct:.1f}%{Style.RESET_ALL}")
-            
-            # Interpretación (usar yield normalizado)
-            yield_decimal = yield_pct / 100 if div_yield > 1 else div_yield
-            if yield_decimal > 0.05:  # >5%
-                report.append(f"   {Fore.GREEN}💰 Dividendo muy atractivo para ingresos pasivos{Style.RESET_ALL}")
-            elif yield_decimal > 0.03:  # >3%
-                report.append(f"   {Fore.GREEN}💵 Dividendo sólido{Style.RESET_ALL}")
+                # yfinance a veces devuelve el yield ya multiplicado por 100, otras veces como decimal
+                # Si yield > 1, asumir que ya está en porcentaje
+                if div_yield > 1:
+                    yield_pct = div_yield
+                else:
+                    yield_pct = div_yield * 100
+                    
+                report.append(f"   {Fore.WHITE}Rendimiento: {Fore.GREEN}{yield_pct:.2f}%{Style.RESET_ALL}")
+                if div_rate:
+                    report.append(f"   {Fore.WHITE}Pago Anual: {Fore.GREEN}${div_rate:.2f}{Style.RESET_ALL} por acción")
+                if payout_ratio:
+                    # Mismo tratamiento para payout ratio
+                    payout_pct = payout_ratio if payout_ratio > 1 else payout_ratio * 100
+                    report.append(f"   {Fore.WHITE}Payout Ratio: {Fore.YELLOW}{payout_pct:.1f}%{Style.RESET_ALL}")
+                
+                # Interpretación (usar yield normalizado)
+                yield_decimal = yield_pct / 100 if div_yield > 1 else div_yield
+                if yield_decimal > 0.05:  # >5%
+                    report.append(f"   {Fore.GREEN}💰 Dividendo muy atractivo para ingresos pasivos{Style.RESET_ALL}")
+                elif yield_decimal > 0.03:  # >3%
+                    report.append(f"   {Fore.GREEN}💵 Dividendo sólido{Style.RESET_ALL}")
+                else:
+                    report.append(f"   {Fore.YELLOW}💲 Dividendo modesto{Style.RESET_ALL}")
             else:
-                report.append(f"   {Fore.YELLOW}💲 Dividendo modesto{Style.RESET_ALL}")
-        else:
-            report.append(f"{Fore.RED}❌ Otorga Dividendos: NO{Style.RESET_ALL}")
-            report.append(f"   {Fore.WHITE}Esta empresa no paga dividendos (reinvierte ganancias en crecimiento){Style.RESET_ALL}")
-        
-        # ═══════════════════════════════════════════════════════════════
-        # 5. SENTIMIENTO DE MERCADO
-        # ═══════════════════════════════════════════════════════════════
-        report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}📰 5. SENTIMENTO DE MERCADO{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        
-        sentiment_label = res['sentiment']['label']
-        sentiment_color = Fore.GREEN if 'Positivo' in sentiment_label else Fore.RED if 'Negativo' in sentiment_label else Fore.YELLOW
-        report.append(f"{Fore.WHITE}Sentimiento Noticias: {sentiment_color}{sentiment_label}{Style.RESET_ALL} {Fore.WHITE}(Score: {res['sentiment']['score']:.2f}){Style.RESET_ALL}")
-        report.append(f"{Fore.WHITE}Noticias Procesadas: {res['sentiment'].get('volume', 0)}{Style.RESET_ALL}")
-        
-        # ═══════════════════════════════════════════════════════════════
-        # 6. CONTEXTO MACROECONÓMICO
-        # ═══════════════════════════════════════════════════════════════
-        report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}🌍 6. CONTEXTO MACROECONÓMICO{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        if "error" not in res['macro']:
-            m = res['macro']
-            fg_color = Fore.GREEN if 'Codicia' in m['fear_greed_label'] else Fore.RED if 'Miedo' in m['fear_greed_label'] else Fore.YELLOW
-            report.append(f"{Fore.WHITE}Índice Miedo/Codicia: {fg_color}{m['fear_greed_label']} {Fore.WHITE}({m['fear_greed_index']:.1f}/100){Style.RESET_ALL}")
-            report.append(f"{Fore.WHITE}Volatilidad (VIX): {Fore.YELLOW}{m['vix']:.2f}{Style.RESET_ALL}")
-            report.append(f"{Fore.WHITE}Bonos 10 Años (TNX): {Fore.YELLOW}{m['tnx']:.2f}%{Style.RESET_ALL} {Fore.WHITE}({m['tnx_trend']}){Style.RESET_ALL}")
-        else:
-            report.append(f"{Fore.YELLOW}Datos no disponibles.{Style.RESET_ALL}")
-
-        # ═══════════════════════════════════════════════════════════════
-        # 7. NIVELES CLAVE (con tabla)
-        # ═══════════════════════════════════════════════════════════════
-        report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}🎯 7. NIVELES CLAVE{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        
-        report.append(f"{Fore.RED}Stop Loss Sugerido: ${res['strategy']['stop_loss']:.2f}{Style.RESET_ALL}")
-        
-        report.append(f"\n{Fore.YELLOW}Niveles de Compra Escalonada:{Style.RESET_ALL}")
-        for i, lvl in enumerate(res['strategy']['buy_levels'], 1):
-            report.append(f"  {Fore.GREEN}{i}.{Style.RESET_ALL} {Fore.WHITE}${lvl:.2f}{Style.RESET_ALL}")
+                report.append(f"{Fore.RED}❌ Otorga Dividendos: NO{Style.RESET_ALL}")
+                report.append(f"   {Fore.WHITE}Esta empresa no paga dividendos (reinvierte ganancias en crecimiento){Style.RESET_ALL}")
             
-        report.append(f"\n{Fore.GREEN}OBJETIVOS DE VENTA (Take Profit):{Style.RESET_ALL}")
-        sell_levels_data = [
-            [f"{Fore.YELLOW}Corto Plazo{Style.RESET_ALL}", f"{Fore.GREEN}${res['strategy']['sell_levels']['short_term']:.2f}{Style.RESET_ALL}"],
-            [f"{Fore.YELLOW}Medio Plazo{Style.RESET_ALL}", f"{Fore.GREEN}${res['strategy']['sell_levels']['mid_term']:.2f}{Style.RESET_ALL}"],
-            [f"{Fore.YELLOW}Largo Plazo (Analistas){Style.RESET_ALL}", f"{Fore.GREEN}${res['strategy']['sell_levels']['long_term']:.2f}{Style.RESET_ALL}"],
-        ]
-        report.append(tabulate(sell_levels_data, tablefmt="simple"))
+            # ═══════════════════════════════════════════════════════════════
+            # 5. SENTIMIENTO DE MERCADO - SOLO EN MODO COMPLETO
+            # ═══════════════════════════════════════════════════════════════
+            report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}📰 5. SENTIMENTO DE MERCADO{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            
+            sentiment_label = res['sentiment']['label']
+            sentiment_color = Fore.GREEN if 'Positivo' in sentiment_label else Fore.RED if 'Negativo' in sentiment_label else Fore.YELLOW
+            report.append(f"{Fore.WHITE}Sentimiento Noticias: {sentiment_color}{sentiment_label}{Style.RESET_ALL} {Fore.WHITE}(Score: {res['sentiment']['score']:.2f}){Style.RESET_ALL}")
+            report.append(f"{Fore.WHITE}Noticias Procesadas: {res['sentiment'].get('volume', 0)}{Style.RESET_ALL}")
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 6. CONTEXTO MACROECONÓMICO - SOLO EN MODO COMPLETO
+            # ═══════════════════════════════════════════════════════════════
+            report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}🌍 6. CONTEXTO MACROECONÓMICO{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            if "error" not in res['macro']:
+                m = res['macro']
+                fg_color = Fore.GREEN if 'Codicia' in m['fear_greed_label'] else Fore.RED if 'Miedo' in m['fear_greed_label'] else Fore.YELLOW
+                report.append(f"{Fore.WHITE}Índice Miedo/Codicia: {fg_color}{m['fear_greed_label']} {Fore.WHITE}({m['fear_greed_index']:.1f}/100){Style.RESET_ALL}")
+                report.append(f"{Fore.WHITE}Volatilidad (VIX): {Fore.YELLOW}{m['vix']:.2f}{Style.RESET_ALL}")
+                report.append(f"{Fore.WHITE}Bonos 10 Años (TNX): {Fore.YELLOW}{m['tnx']:.2f}%{Style.RESET_ALL} {Fore.WHITE}({m['tnx_trend']}){Style.RESET_ALL}")
+            else:
+                report.append(f"{Fore.YELLOW}Datos no disponibles.{Style.RESET_ALL}")
+
+            # ═══════════════════════════════════════════════════════════════
+            # 7. NIVELES CLAVE (con tabla) - SOLO EN MODO COMPLETO
+            # ═══════════════════════════════════════════════════════════════
+            report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}🎯 7. NIVELES CLAVE{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            
+            report.append(f"{Fore.RED}Stop Loss Sugerido: ${res['strategy']['stop_loss']:.2f}{Style.RESET_ALL}")
+            
+            report.append(f"\n{Fore.YELLOW}Niveles de Compra Escalonada:{Style.RESET_ALL}")
+            for i, lvl in enumerate(res['strategy']['buy_levels'], 1):
+                report.append(f"  {Fore.GREEN}{i}.{Style.RESET_ALL} {Fore.WHITE}${lvl:.2f}{Style.RESET_ALL}")
+                
+            report.append(f"\n{Fore.GREEN}OBJETIVOS DE VENTA (Take Profit):{Style.RESET_ALL}")
+            sell_levels_data = [
+                [f"{Fore.YELLOW}Corto Plazo{Style.RESET_ALL}", f"{Fore.GREEN}${res['strategy']['sell_levels']['short_term']:.2f}{Style.RESET_ALL}"],
+                [f"{Fore.YELLOW}Medio Plazo{Style.RESET_ALL}", f"{Fore.GREEN}${res['strategy']['sell_levels']['mid_term']:.2f}{Style.RESET_ALL}"],
+                [f"{Fore.YELLOW}Largo Plazo (Analistas){Style.RESET_ALL}", f"{Fore.GREEN}${res['strategy']['sell_levels']['long_term']:.2f}{Style.RESET_ALL}"],
+            ]
+            report.append(tabulate(sell_levels_data, tablefmt="simple"))
         
-        # ═══════════════════════════════════════════════════════════════
-        # 8. ALTERNATIVAS
-        # ═══════════════════════════════════════════════════════════════
-        report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}🔄 8. ALTERNATIVAS (Mismo Sector){Style.RESET_ALL}")
-        report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
-        peers_colored = [f"{Fore.CYAN}{peer}{Style.RESET_ALL}" for peer in res['peers'][:5]]
-        report.append(f"{Fore.WHITE}{', '.join(peers_colored)}{Style.RESET_ALL}")
+            # ═══════════════════════════════════════════════════════════════
+            # 8. ALTERNATIVAS - SOLO EN MODO COMPLETO
+            # ═══════════════════════════════════════════════════════════════
+            report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}🔄 8. ALTERNATIVAS (Mismo Sector){Style.RESET_ALL}")
+            report.append(f"{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
+            peers_colored = [f"{Fore.CYAN}{peer}{Style.RESET_ALL}" for peer in res['peers'][:5]]
+            report.append(f"{Fore.WHITE}{', '.join(peers_colored)}{Style.RESET_ALL}")
+        
+        # Mensaje para ver análisis completo (solo en modo básico)
+        if not full_analysis:
+            report.append(f"\n{Fore.YELLOW}{'─' * 70}{Style.RESET_ALL}")
+            report.append(f"{Fore.YELLOW}💡 Para ver el análisis técnico completo, usa: {Fore.CYAN}{Style.BRIGHT}python main.py {res['ticker']} -f{Style.RESET_ALL}")
+            report.append(f"{Fore.YELLOW}   (Incluye: técnicos detallados, fundamentos, dividendos, sentimiento, macro, niveles clave){Style.RESET_ALL}")
         
         # Footer
         report.append(f"\n{Fore.CYAN}{'═' * 70}{Style.RESET_ALL}\n")
