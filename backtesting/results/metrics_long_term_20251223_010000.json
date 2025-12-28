@@ -1,0 +1,42 @@
+{
+  "returns": {
+    "total_return_pct": 0.0,
+    "annualized_return_pct": 0.0,
+    "avg_daily_return_pct": 0.0,
+    "best_day_pct": 0.0,
+    "worst_day_pct": 0.0
+  },
+  "risk": {
+    "volatility_pct": 0.0,
+    "maximum_drawdown_pct": 0.0,
+    "average_drawdown_pct": 0,
+    "drawdown_duration_days": 0
+  },
+  "risk_adjusted": {
+    "sharpe_ratio": 0,
+    "sortino_ratio": 0,
+    "calmar_ratio": 0,
+    "recovery_factor": 0
+  },
+  "trading": {
+    "total_trades": 0,
+    "win_rate_pct": 0,
+    "winning_trades": 0,
+    "losing_trades": 0,
+    "profit_factor": 0,
+    "avg_win": 0,
+    "avg_loss": 0,
+    "expectancy": 0,
+    "consecutive_wins": 0,
+    "consecutive_losses": 0
+  },
+  "statistics": {
+    "mean": 0.0,
+    "median": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0,
+    "skewness": 0.0,
+    "kurtosis": 0.0
+  }
+}

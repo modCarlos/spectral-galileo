@@ -1,0 +1,4 @@
+AGENT-BASED BACKTEST SUMMARY
+============================================================
+
+Analysis Type: long_term
