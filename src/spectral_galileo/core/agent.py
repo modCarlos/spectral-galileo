@@ -1554,6 +1554,81 @@ class FinancialAgent:
         report.append(f"  {Fore.WHITE}* Por cada $1 arriesgado (hasta Stop Loss), se esperan ${rr:.2f} de ganancia (hasta Objetivo).{Style.RESET_ALL}")
 
         # ═══════════════════════════════════════════════════════════════
+        # GUÍA DE DECISIÓN PRÁCTICA
+        # ═══════════════════════════════════════════════════════════════
+        report.append(f"\n{Fore.MAGENTA}{'═' * 70}{Style.RESET_ALL}")
+        report.append(f"{Fore.MAGENTA}{Style.BRIGHT}📋 GUÍA DE DECISIÓN PRÁCTICA{Style.RESET_ALL}")
+        report.append(f"{Fore.MAGENTA}{'═' * 70}{Style.RESET_ALL}")
+        
+        # Determinar zona de confianza y recomendaciones
+        confidence = res['strategy']['confidence']
+        price = res['current_price']
+        
+        if confidence >= 75:
+            zone_emoji = "🟢"
+            zone_name = "ZONA VERDE"
+            zone_color = Fore.GREEN
+            position_size = "100%"
+            action_guidance = "Compra posición completa"
+            risk_level = "Bajo - Señales fuertemente alineadas"
+            stop_loss_mult = 2.0
+        elif confidence >= 55:
+            zone_emoji = "🟡"
+            zone_name = "ZONA AMARILLA"
+            zone_color = Fore.YELLOW
+            position_size = "50-75%"
+            action_guidance = "Compra posición parcial"
+            risk_level = "Moderado - Algunas señales mixtas"
+            stop_loss_mult = 1.5
+        elif confidence >= 30:
+            zone_emoji = "⚠️"
+            zone_name = "ZONA GRIS"
+            zone_color = Fore.YELLOW
+            position_size = "25-40%"
+            action_guidance = "PRECAUCIÓN - Posición pequeña con stop estricto"
+            risk_level = "Alto - Señales conflictivas"
+            stop_loss_mult = 1.0
+        else:
+            zone_emoji = "🔴"
+            zone_name = "ZONA ROJA"
+            zone_color = Fore.RED
+            position_size = "0%"
+            action_guidance = "Evitar entrada o cerrar posición existente"
+            risk_level = "Muy Alto - Señales predominantemente negativas"
+            stop_loss_mult = 1.0
+        
+        # Calcular stop loss sugerido (basado en confianza)
+        stop_loss_price = res['strategy'].get('stop_loss', price * 0.92)
+        stop_loss_pct = ((stop_loss_price - price) / price) * 100
+        
+        report.append(f"\n{zone_color}{Style.BRIGHT}  {zone_emoji} Zona de Confianza: {zone_name} (Confianza: {confidence:.0f}%){Style.RESET_ALL}")
+        report.append(f"{Fore.WHITE}  Tamaño de Posición Sugerido: {zone_color}{Style.BRIGHT}{position_size}{Style.RESET_ALL} {Fore.WHITE}del tamaño planeado{Style.RESET_ALL}")
+        report.append(f"{Fore.WHITE}  Acción Recomendada: {zone_color}{action_guidance}{Style.RESET_ALL}")
+        report.append(f"{Fore.WHITE}  Nivel de Riesgo: {zone_color}{risk_level}{Style.RESET_ALL}")
+        report.append(f"{Fore.WHITE}  Stop Loss Sugerido: {Fore.RED}${stop_loss_price:.2f}{Style.RESET_ALL} {Fore.WHITE}({stop_loss_pct:+.1f}%){Style.RESET_ALL}")
+        
+        # Advertencias especiales para ZONA GRIS
+        if 30 <= confidence < 55:
+            report.append(f"\n{Fore.YELLOW}{'  ' + '─' * 66}{Style.RESET_ALL}")
+            report.append(f"{Fore.YELLOW}  ⚠️  ADVERTENCIA - ESTÁS EN ZONA GRIS:{Style.RESET_ALL}")
+            report.append(f"{Fore.WHITE}     • El veredicto y la confianza NO están fuertemente alineados{Style.RESET_ALL}")
+            report.append(f"{Fore.WHITE}     • NO compres posición completa - limita a {position_size} máximo{Style.RESET_ALL}")
+            report.append(f"{Fore.WHITE}     • Usa stop loss MÁS ESTRICTO (-5% a -8% del precio actual){Style.RESET_ALL}")
+            report.append(f"{Fore.WHITE}     • Considera esperar confirmación adicional (nuevo análisis en 1-2 días){Style.RESET_ALL}")
+            report.append(f"{Fore.WHITE}     • Si ya tienes posición: HOLD, no vendas por pánico{Style.RESET_ALL}")
+            report.append(f"{Fore.YELLOW}{'  ' + '─' * 66}{Style.RESET_ALL}")
+        
+        # Contexto adicional para decisión
+        report.append(f"\n{Fore.CYAN}  💡 Recuerda considerar TU CONTEXTO PERSONAL:{Style.RESET_ALL}")
+        report.append(f"{Fore.WHITE}     • Tu tolerancia al riesgo (conservador/moderado/agresivo){Style.RESET_ALL}")
+        report.append(f"{Fore.WHITE}     • Composición actual de tu portafolio (¿ya tienes mucha exposición al sector?){Style.RESET_ALL}")
+        report.append(f"{Fore.WHITE}     • Tu horizonte temporal REAL (¿cuándo necesitarás este dinero?){Style.RESET_ALL}")
+        report.append(f"{Fore.WHITE}     • Situación del mercado general (VIX, tendencia macro){Style.RESET_ALL}")
+        
+        report.append(f"\n{Fore.MAGENTA}  🎯 Regla de Oro:{Style.RESET_ALL} {Fore.WHITE}{Style.BRIGHT}Si dudas si deberías comprar,{Style.RESET_ALL}")
+        report.append(f"{Fore.WHITE}     {Style.BRIGHT}probablemente la señal no es lo suficientemente fuerte. Espera.{Style.RESET_ALL}")
+
+        # ═══════════════════════════════════════════════════════════════
         # 3. ANÁLISIS FUNDAMENTAL (con tabla)
         # ═══════════════════════════════════════════════════════════════
         report.append(f"\n{Fore.CYAN}{'─' * 70}{Style.RESET_ALL}")
