@@ -9,3 +9,5 @@ jinja2
 requests
 praw
 rich
+python-telegram-bot
+python-dotenv

@@ -37,6 +37,14 @@ env/
 *.json.bak
 *.pid
 
+# Environment variables (IMPORTANT - Contains bot token!)
+.env
+
+# Telegram Bot
+telegram_bot.pid
+logs/bot_output.log
+logs/telegram_bot.log
+
 # Logs
 *.log
 logs/*.log
