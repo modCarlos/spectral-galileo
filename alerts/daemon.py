@@ -13,11 +13,13 @@ from datetime import datetime
 from typing import List, Dict, Any
 
 # Agregar directorio raíz al path
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT_DIR)
+os.chdir(ROOT_DIR)
 
 from src.spectral_galileo.core.agent import FinancialAgent
-from watchlist_manager import get_watchlist_tickers
-from portfolio_manager import load_portfolio
+from src.spectral_galileo.core.watchlist_manager import get_watchlist_tickers
+from src.spectral_galileo.core.portfolio_manager import load_portfolio
 from alerts.config import (
     load_config, get_interval_minutes, get_min_confidence,
     is_sound_enabled, get_cooldown_hours, get_max_alerts_per_hour
@@ -227,9 +229,28 @@ class AlertDaemon:
         
         elif verdict == "COMPRA":
             min_conf = get_min_confidence('buy')
-            if confidence >= min_conf:
+            
+            # OPCIÓN C: Requerir confirmación multi-timeframe (2/3 timeframes en COMPRA)
+            # Acceder a análisis multi-timeframe
+            multi_tf = results.get('advanced', {}).get('multi_timeframe', {})
+            timeframes = multi_tf.get('timeframes', {})
+            
+            # Contar cuántos timeframes tienen señal de COMPRA
+            buy_timeframes = 0
+            for tf_name, tf_data in timeframes.items():
+                tf_signal = tf_data.get('signal', '').upper()
+                if 'BUY' in tf_signal or 'COMPRA' in tf_signal:
+                    buy_timeframes += 1
+            
+            # Requiere: confianza >= umbral Y al menos 2/3 timeframes en COMPRA
+            if confidence >= min_conf and buy_timeframes >= 2:
                 should_alert = True
                 alert_type = "BUY"
+                logger.debug(f"✓ {ticker} COMPRA confirmada: {buy_timeframes}/3 timeframes en BUY")
+            else:
+                logger.debug(f"✗ {ticker} COMPRA rechazada: conf={confidence}% (min={min_conf}%), "
+                           f"timeframes={buy_timeframes}/3 (requiere 2)")
+
         
         elif verdict in ["VENTA", "FUERTE VENTA"] and self.config['alert_types']['sell']:
             should_alert = True

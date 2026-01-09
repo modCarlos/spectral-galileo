@@ -11,7 +11,7 @@
     },
     "min_confidence": {
         "strong_buy": 30,
-        "buy": 25
+        "buy": 22
     },
     "cooldown_hours": 4,
     "max_alerts_per_hour": 5,
