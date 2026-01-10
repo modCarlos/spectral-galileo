@@ -13,6 +13,15 @@ def calculate_combined_confidence(short_analysis, long_analysis):
     short_conf = short_analysis.get('strategy', {}).get('confidence', 0)
     long_conf = long_analysis.get('strategy', {}).get('confidence', 0)
     
+    # Asegurar que son números válidos
+    if short_conf is None:
+        short_conf = 0
+    if long_conf is None:
+        long_conf = 0
+    
+    short_conf = max(0, min(100, float(short_conf)))
+    long_conf = max(0, min(100, float(long_conf)))
+    
     combined = (short_conf * 0.6) + (long_conf * 0.4)
     return combined, short_conf, long_conf
 
@@ -87,37 +96,57 @@ def get_accumulation_rating(short_analysis, long_analysis):
     - Insider Activity (10%)
     """
     
-    metrics = {}
+    try:
+        metrics = {}
+        
+        # 1. Largo plazo confianza (40%)
+        long_conf = long_analysis.get('strategy', {}).get('confidence', 0)
+        if long_conf is None:
+            long_conf = 0
+        metric_1 = min(100, max(0, float(long_conf)))
+        metrics['long_term_confidence'] = metric_1
+        
+        # 2. Fortaleza fundamental (30%)
+        metric_2 = evaluate_fundamental_strength(long_analysis)
+        if metric_2 is None:
+            metric_2 = 50
+        metric_2 = max(0, min(100, float(metric_2)))
+        metrics['fundamental_strength'] = metric_2
+        
+        # 3. Multi-timeframe (20%)
+        mtf_data = long_analysis.get('advanced', {}).get('multi_timeframe', {})
+        bullish_tf = count_bullish_timeframes(mtf_data)
+        metric_3 = (bullish_tf / 3.0) * 100
+        metric_3 = max(0, min(100, float(metric_3)))
+        metrics['timeframe_alignment'] = metric_3
+        
+        # 4. Insider (10%)
+        advanced = long_analysis.get('advanced', {})
+        metric_4 = evaluate_insider_strength(advanced)
+        if metric_4 is None:
+            metric_4 = 50
+        metric_4 = max(0, min(100, float(metric_4)))
+        metrics['insider_strength'] = metric_4
+        
+        # Rating ponderado
+        accum_rating = (
+            (metric_1 * 0.40) +
+            (metric_2 * 0.30) +
+            (metric_3 * 0.20) +
+            (metric_4 * 0.10)
+        )
+        
+        return max(0, min(100, float(accum_rating))), metrics
     
-    # 1. Largo plazo confianza (40%)
-    long_conf = long_analysis.get('strategy', {}).get('confidence', 0)
-    metric_1 = min(100, long_conf)
-    metrics['long_term_confidence'] = metric_1
-    
-    # 2. Fortaleza fundamental (30%)
-    metric_2 = evaluate_fundamental_strength(long_analysis)
-    metrics['fundamental_strength'] = metric_2
-    
-    # 3. Multi-timeframe (20%)
-    mtf_data = long_analysis.get('advanced', {}).get('multi_timeframe', {})
-    bullish_tf = count_bullish_timeframes(mtf_data)
-    metric_3 = (bullish_tf / 3.0) * 100
-    metrics['timeframe_alignment'] = metric_3
-    
-    # 4. Insider (10%)
-    advanced = long_analysis.get('advanced', {})
-    metric_4 = evaluate_insider_strength(advanced)
-    metrics['insider_strength'] = metric_4
-    
-    # Rating ponderado
-    accum_rating = (
-        (metric_1 * 0.40) +
-        (metric_2 * 0.30) +
-        (metric_3 * 0.20) +
-        (metric_4 * 0.10)
-    )
-    
-    return accum_rating, metrics
+    except Exception as e:
+        # Si hay error, retornar valores por defecto
+        print(f"Aviso: Error en get_accumulation_rating: {str(e)}")
+        return 50, {
+            'long_term_confidence': 50,
+            'fundamental_strength': 50,
+            'timeframe_alignment': 50,
+            'insider_strength': 50
+        }
 
 
 def get_accumulation_decision(short_verdict, long_verdict, combined_confidence):

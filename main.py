@@ -269,32 +269,45 @@ def run_watchlist_scanner(is_short_term=False, generate_html=False):
             continue
         
         # Calcular métricas de acumulación
-        combined_conf, short_conf, long_conf = calculate_combined_confidence(short, long)
-        accum_rating, metrics = get_accumulation_rating(short, long)
-        
-        short_verdict = short['strategy']['verdict']
-        long_verdict = long['strategy']['verdict']
-        
-        decision = get_accumulation_decision(short_verdict, long_verdict, combined_conf)
-        
-        accum_data.append({
-            'ticker': ticker,
-            'rating': accum_rating,
-            'combined_conf': combined_conf,
-            'decision': decision
-        })
-        
-        accum_table.append([
-            ticker,
-            f"{accum_rating:.0f}%",
-            f"{combined_conf:.0f}%",
-            f"{short_conf:.0f}% / {long_conf:.0f}%",
-            decision['action'],
-            decision['position_size']
-        ])
+        try:
+            combined_conf, short_conf, long_conf = calculate_combined_confidence(short, long)
+            accum_rating, metrics = get_accumulation_rating(short, long)
+            
+            # Validar que accum_rating sea un número válido
+            if accum_rating is None:
+                accum_rating = 0
+            if combined_conf is None:
+                combined_conf = 0
+            
+            short_verdict = short['strategy']['verdict']
+            long_verdict = long['strategy']['verdict']
+            
+            decision = get_accumulation_decision(short_verdict, long_verdict, combined_conf)
+            
+            accum_data.append({
+                'ticker': ticker,
+                'rating': accum_rating,
+                'combined_conf': combined_conf,
+                'decision': decision
+            })
+            
+            accum_table.append([
+                ticker,
+                f"{accum_rating:.0f}%",
+                f"{combined_conf:.0f}%",
+                f"{short_conf:.0f}% / {long_conf:.0f}%",
+                decision['action'],
+                decision['position_size']
+            ])
+        except Exception as e:
+            print(f"{Fore.YELLOW}⚠️  Error procesando {ticker}: {str(e)}{Style.RESET_ALL}")
+            continue
     
     # Ordenar por Accumulation Rating
-    accum_table.sort(key=lambda x: float(x[1].rstrip('%')), reverse=True)
+    try:
+        accum_table.sort(key=lambda x: float(x[1].rstrip('%')), reverse=True)
+    except (ValueError, AttributeError, TypeError) as e:
+        print(f"{Fore.YELLOW}⚠️  Aviso al ordenar tabla: {str(e)}{Style.RESET_ALL}")
     
     if accum_table:
         print(tabulate(accum_table, 
