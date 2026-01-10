@@ -5,6 +5,10 @@ from src.spectral_galileo.core import watchlist_manager
 from src.spectral_galileo.data import market_data
 from src.spectral_galileo.core.agent import FinancialAgent
 from src.spectral_galileo.core.data_manager import DataManager
+from src.spectral_galileo.core.accumulation_helper import (
+    calculate_combined_confidence, get_accumulation_decision, get_accumulation_rating,
+    format_accumulation_summary
+)
 import concurrent.futures
 from colorama import init, Fore, Style
 from tabulate import tabulate
@@ -136,7 +140,8 @@ def run_portfolio_scanner(is_short_term=False, generate_html=False):
 
 def run_watchlist_scanner(is_short_term=False, generate_html=False):
     """
-    Escanea las acciones en la watchlist.
+    Escanea las acciones en la watchlist con análisis de ACUMULACIÓN.
+    Combina corto y largo plazo para identificar oportunidades verdaderas.
     """
     tickers = watchlist_manager.get_watchlist_tickers()
     if not tickers:
@@ -148,56 +153,197 @@ def run_watchlist_scanner(is_short_term=False, generate_html=False):
     dm = DataManager()
     macro_data = dm.get_macro_data()
     
-    def analyze_ticker(t):
+    def analyze_ticker_both(t):
+        """Análisis de corto Y largo plazo para cada ticker"""
         try:
             data = dm.get_ticker_data(t)
             data['macro_data'] = macro_data
-            agent = FinancialAgent(t, is_short_term=is_short_term)
-            return agent.run_analysis(pre_data=data)
-        except Exception:
-            return None
+            
+            # CORTO PLAZO
+            agent_short = FinancialAgent(t, is_short_term=True)
+            short_result = agent_short.run_analysis(pre_data=data.copy())
+            
+            # LARGO PLAZO
+            agent_long = FinancialAgent(t, is_short_term=False)
+            long_result = agent_long.run_analysis(pre_data=data.copy())
+            
+            return {
+                'ticker': t,
+                'short': short_result,
+                'long': long_result,
+                'error': None
+            }
+        except Exception as e:
+            return {'ticker': t, 'error': str(e)}
 
-    print(f"Analizando {len(tickers)} acciones favoritas en paralelo...")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        results = list(tqdm(executor.map(analyze_ticker, tickers), total=len(tickers), desc="Watchlist"))
+    print(f"Analizando {len(tickers)} acciones en AMBOS plazos (corto + largo)...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        results = list(tqdm(executor.map(analyze_ticker_both, tickers), total=len(tickers), desc="Watchlist"))
 
-    table_data = []
+    # Tabla 1: Resultados de Corto Plazo
+    print(f"\n{Fore.CYAN}{'═' * 120}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}📊 ANÁLISIS DE CORTO PLAZO (Timing Operativo){Style.RESET_ALL}")
+    print(f"{Fore.CYAN}{'═' * 120}{Style.RESET_ALL}\n")
+    
+    short_table = []
     for res in results:
-        if not res or "error" in res: continue
+        if res.get('error'):
+            continue
         
-        symbol = res['symbol']
-        verdict = res['strategy']['verdict']
-        confidence = res['strategy']['confidence']
+        ticker = res['ticker']
+        short = res['short']
+        if not short:
+            continue
+        
+        verdict = short['strategy']['verdict']
+        confidence = short['strategy']['confidence']
+        price = short['current_price']
+        tendency = calculate_tendency(short)
+        
         v_color = Fore.GREEN if "COMPRA" in verdict else Fore.RED if "VENTA" in verdict else Fore.WHITE
         
-        # Calcular tendencia
-        tendency = calculate_tendency(res)
-        
-        table_data.append([symbol, f"${res['current_price']:.2f}", f"{v_color}{verdict}{Style.RESET_ALL}", f"{confidence:.0f}%", tendency])
+        short_table.append([
+            ticker,
+            f"${price:.2f}",
+            f"{v_color}{verdict}{Style.RESET_ALL}",
+            f"{confidence:.0f}%",
+            tendency
+        ])
     
-    # Ordenar por confianza descendente
-    table_data.sort(key=lambda x: float(x[3].rstrip('%')), reverse=True)
-            
-    if table_data:
-        full_table = tabulate(table_data, headers=["Ticker", "Precio", "Veredicto", "Confianza", "Tendencia"], tablefmt="fancy_grid")
-        print("\n" + full_table + "\n")
-        
-        # Resumen por veredicto
-        compra = len([x for x in table_data if "COMPRA" in x[2]])
-        venta = len([x for x in table_data if "VENTA" in x[2]])
-        neutral = len([x for x in table_data if "NEUTRAL" in x[2] or "MANTENER" in x[2]])
-        
-        print(f"{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}")
-        print(f"{Fore.CYAN}RESUMEN:{Style.RESET_ALL}")
-        print(f"  Total analizado: {len(table_data)} acciones")
-        print(f"  🟢 COMPRA/FUERTE COMPRA: {compra}")
-        print(f"  🔴 VENTA/FUERTE VENTA: {venta}")
-        print(f"  ⚪ NEUTRAL/MANTENER: {neutral}")
-        print(f"  ❌ Errores de descarga: {len(tickers) - len(table_data)}")
-        print(f"{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}\n")
-    else:
-        print(f"\n{Fore.YELLOW}No se pudieron obtener resultados para tu watchlist.{Style.RESET_ALL}")
+    short_table.sort(key=lambda x: float(x[3].rstrip('%')), reverse=True)
+    if short_table:
+        print(tabulate(short_table, headers=["Ticker", "Precio", "Veredicto", "Confianza", "Tendencia"], tablefmt="fancy_grid"))
     
+    # Tabla 2: Resultados de Largo Plazo + Accumulation Rating
+    print(f"\n{Fore.CYAN}{'═' * 120}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}💰 ANÁLISIS DE LARGO PLAZO (Valor Fundamental){Style.RESET_ALL}")
+    print(f"{Fore.CYAN}{'═' * 120}{Style.RESET_ALL}\n")
+    
+    long_table = []
+    for res in results:
+        if res.get('error'):
+            continue
+        
+        ticker = res['ticker']
+        long = res['long']
+        if not long:
+            continue
+        
+        verdict = long['strategy']['verdict']
+        confidence = long['strategy']['confidence']
+        peg = long.get('fundamental', {}).get('peg', 'N/A')
+        
+        v_color = Fore.GREEN if "COMPRA" in verdict else Fore.RED if "VENTA" in verdict else Fore.WHITE
+        
+        peg_str = f"{peg:.2f}" if isinstance(peg, (int, float)) else str(peg)
+        
+        long_table.append([
+            ticker,
+            f"{v_color}{verdict}{Style.RESET_ALL}",
+            f"{confidence:.0f}%",
+            peg_str,
+            "✓" if isinstance(peg, (int, float)) and peg < 2.0 else "✗"
+        ])
+    
+    long_table.sort(key=lambda x: float(x[2].rstrip('%')), reverse=True)
+    if long_table:
+        print(tabulate(long_table, headers=["Ticker", "Veredicto", "Confianza", "PEG", "Valuation OK"], tablefmt="fancy_grid"))
+    
+    # Tabla 3: Decisión de Acumulación
+    print(f"\n{Fore.CYAN}{'═' * 120}{Style.RESET_ALL}")
+    print(f"{Fore.LIGHTGREEN_EX}🎯 RECOMENDACIÓN DE ACUMULACIÓN{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}{'═' * 120}{Style.RESET_ALL}\n")
+    
+    accum_table = []
+    accum_data = []
+    
+    for res in results:
+        if res.get('error'):
+            continue
+        
+        ticker = res['ticker']
+        short = res['short']
+        long = res['long']
+        
+        if not short or not long:
+            continue
+        
+        # Calcular métricas de acumulación
+        combined_conf, short_conf, long_conf = calculate_combined_confidence(short, long)
+        accum_rating, metrics = get_accumulation_rating(short, long)
+        
+        short_verdict = short['strategy']['verdict']
+        long_verdict = long['strategy']['verdict']
+        
+        decision = get_accumulation_decision(short_verdict, long_verdict, combined_conf)
+        
+        accum_data.append({
+            'ticker': ticker,
+            'rating': accum_rating,
+            'combined_conf': combined_conf,
+            'decision': decision
+        })
+        
+        accum_table.append([
+            ticker,
+            f"{accum_rating:.0f}%",
+            f"{combined_conf:.0f}%",
+            f"{short_conf:.0f}% / {long_conf:.0f}%",
+            decision['action'],
+            decision['position_size']
+        ])
+    
+    # Ordenar por Accumulation Rating
+    accum_table.sort(key=lambda x: float(x[1].rstrip('%')), reverse=True)
+    
+    if accum_table:
+        print(tabulate(accum_table, 
+                      headers=["Ticker", "AccumRating", "CombConf", "Short/Long", "Acción", "Tamaño"], 
+                      tablefmt="fancy_grid"))
+    
+    # Resumen
+    print(f"\n{Fore.CYAN}{'═' * 120}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}RESUMEN:{Style.RESET_ALL}")
+    print(f"  Total analizado: {len([r for r in results if not r.get('error')])} acciones")
+    
+    accum_actions = {
+        'aggressive': len([d for d in accum_data if d['decision']['priority'] == 1]),
+        'dca': len([d for d in accum_data if d['decision']['priority'] == 2]),
+        'wait': len([d for d in accum_data if d['decision']['priority'] == 3]),
+        'no_buy': len([d for d in accum_data if d['decision']['priority'] == 4]),
+        'avoid': len([d for d in accum_data if d['decision']['priority'] == 5]),
+    }
+    
+    print(f"  {Fore.LIGHTGREEN_EX}✅ ACUMULAR AGRESIVA:{Style.RESET_ALL} {accum_actions['aggressive']}")
+    print(f"  {Fore.YELLOW}🟡 ACUMULAR DCA:{Style.RESET_ALL} {accum_actions['dca']}")
+    print(f"  {Fore.YELLOW}⚠️  ESPERAR rebote:{Style.RESET_ALL} {accum_actions['wait']}")
+    print(f"  {Fore.RED}❌ NO COMPRAR:{Style.RESET_ALL} {accum_actions['no_buy']}")
+    print(f"  {Fore.RED}🔴 EVITAR:{Style.RESET_ALL} {accum_actions['avoid']}")
+    print(f"  ❌ Errores: {len([r for r in results if r.get('error')])}")
+    print(f"{Fore.CYAN}{'═' * 120}{Style.RESET_ALL}\n")
+    
+    # Generar HTMLs si se solicitó
+    if generate_html and len(results) > 0:
+        try:
+            print(f"{Fore.CYAN}Generando reportes HTML para watchlist...{Style.RESET_ALL}")
+            html_count = 0
+            for res in results:
+                if res.get('error'):
+                    continue
+                ticker = res['ticker']
+                try:
+                    # Usar análisis ya hecho
+                    agent = FinancialAgent(ticker, is_short_term=False)
+                    agent.analysis_results = res['long']  # Usar resultado de largo plazo
+                    report_path = agent.generate_html_report(output_dir='./reports')
+                    if report_path:
+                        html_count += 1
+                except Exception:
+                    pass
+            if html_count > 0:
+                print(f"{Fore.GREEN}✅ {html_count} reportes HTML generados en ./reports/{Style.RESET_ALL}\n")
+        except Exception as e:
+            print(f"{Fore.YELLOW}⚠️ Error generando HTMLs: {str(e)}{Style.RESET_ALL}\n")
     # Generar HTMLs si se solicitó
     if generate_html and table_data:
         try:
@@ -853,18 +999,75 @@ SISTEMA DE EXCELENCIA 2.0:
             data = dm.get_ticker_data(args.ticker)
             data['macro_data'] = dm.get_macro_data()
             
-            agent = FinancialAgent(args.ticker, is_short_term=args.short_term, is_etf=args.etf)
-            results = agent.run_analysis(pre_data=data)
+            # CORTO PLAZO
+            agent_short = FinancialAgent(args.ticker, is_short_term=True, is_etf=args.etf)
+            results_short = agent_short.run_analysis(pre_data=data.copy())
+            
+            # LARGO PLAZO
+            agent_long = FinancialAgent(args.ticker, is_short_term=False, is_etf=args.etf)
+            results_long = agent_long.run_analysis(pre_data=data.copy())
+            
+            # Usar el resultado de largo plazo como principal (para el reporte)
+            results = results_long
             
             if "error" in results:
                 print(f"\n{Fore.RED}Error al analizar {args.ticker}: {results['error']}{Style.RESET_ALL}\n")
             else:
-                print(agent.get_report_string(full_analysis=args.full))
+                print(agent_long.get_report_string(full_analysis=args.full))
+                
+                # === NUEVO: Análisis de Acumulación ===
+                print(f"\n{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}")
+                print(f"{Fore.LIGHTGREEN_EX}🎯 ANÁLISIS DE ACUMULACIÓN (Corto + Largo Plazo){Style.RESET_ALL}")
+                print(f"{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}\n")
+                
+                # Calcular métricas de acumulación
+                combined_conf, short_conf, long_conf = calculate_combined_confidence(results_short, results_long)
+                accum_rating, metrics = get_accumulation_rating(results_short, results_long)
+                
+                short_verdict = results_short.get('strategy', {}).get('verdict', 'N/A')
+                long_verdict = results_long.get('strategy', {}).get('verdict', 'N/A')
+                
+                decision = get_accumulation_decision(short_verdict, long_verdict, combined_conf)
+                
+                # Mostrar tabla comparativa
+                print(f"{Fore.YELLOW}Comparativa Corto vs Largo Plazo:{Style.RESET_ALL}\n")
+                
+                comparison_table = [
+                    ["Métrica", "Corto Plazo", "Largo Plazo"],
+                    ["Veredicto", short_verdict, long_verdict],
+                    ["Confianza", f"{short_conf:.0f}%", f"{long_conf:.0f}%"],
+                    ["Timeframe", "1-3 meses", "3-5 años"],
+                    ["Enfoque", "Momentum/Timing", "Fundamentales/Valor"]
+                ]
+                
+                print(tabulate(comparison_table[1:], headers=comparison_table[0], tablefmt="fancy_grid"))
+                
+                print(f"\n{Fore.LIGHTGREEN_EX}Métricas de Acumulación:{Style.RESET_ALL}\n")
+                
+                metrics_table = [
+                    ["Métrica", "Valor"],
+                    ["Accumulation Rating", f"{accum_rating:.0f}%"],
+                    ["Confianza Combinada", f"{combined_conf:.0f}%"],
+                    ["Long Term Confidence", f"{metrics['long_term_confidence']:.0f}%"],
+                    ["Fundamental Strength", f"{metrics['fundamental_strength']:.0f}%"],
+                    ["Timeframe Alignment", f"{metrics['timeframe_alignment']:.0f}%"],
+                    ["Insider Strength", f"{metrics['insider_strength']:.0f}%"],
+                ]
+                
+                print(tabulate(metrics_table[1:], headers=metrics_table[0], tablefmt="fancy_grid"))
+                
+                # Decisión de acumulación
+                print(f"\n{Fore.LIGHTGREEN_EX}Recomendación de Acumulación:{Style.RESET_ALL}")
+                print(f"\n  {decision['action']}")
+                print(f"  Tamaño de Posición: {decision['position_size']}")
+                print(f"  Razonamiento: {decision['reasoning']}")
+                
+                print(f"\n{Fore.CYAN}{'═' * 80}{Style.RESET_ALL}\n")
                 
                 # Generar HTML si se solicitó
                 if args.html:
                     try:
-                        report_path = agent.generate_html_report(output_dir='./reports')
+                        report_path = agent_long.generate_html_report(output_dir='./reports')
                         if report_path:
                             print(f"\n{Fore.GREEN}✅ Reporte HTML generado:{Style.RESET_ALL}")
                             print(f"   📄 {report_path}\n")
@@ -895,6 +1098,7 @@ SISTEMA DE EXCELENCIA 2.0:
                     
                     strategy = "Corto Plazo (3-6 meses)" if args.short_term else "Largo Plazo (3-5 años)"
                     print(f"  Estrategia: {Fore.CYAN}{strategy}{Style.RESET_ALL}")
+                    print(f"  Accumulation Rating: {Fore.LIGHTGREEN_EX}{accum_rating:.0f}%{Style.RESET_ALL} (Recomendación: {decision['action'].replace(Fore.LIGHTGREEN_EX, '').replace(Fore.YELLOW, '').replace(Fore.RED, '').replace(Style.RESET_ALL, '')})")
                     print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}\n")
                     
                     # Ask if user wants to add to portfolio

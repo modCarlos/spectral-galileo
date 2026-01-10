@@ -20,6 +20,9 @@ os.chdir(ROOT_DIR)
 from src.spectral_galileo.core.agent import FinancialAgent
 from src.spectral_galileo.core.watchlist_manager import get_watchlist_tickers
 from src.spectral_galileo.core.portfolio_manager import load_portfolio
+from src.spectral_galileo.core.accumulation_helper import (
+    calculate_combined_confidence, get_accumulation_decision, get_accumulation_rating
+)
 from alerts.config import (
     load_config, get_interval_minutes, get_min_confidence,
     is_sound_enabled, get_cooldown_hours, get_max_alerts_per_hour
@@ -189,6 +192,7 @@ class AlertDaemon:
     def _analyze_and_alert(self, ticker: str) -> bool:
         """
         Analiza un ticker y envía alerta si cumple condiciones.
+        Incluye análisis de acumulación (Opción D).
         
         Args:
             ticker: Símbolo del ticker
@@ -206,16 +210,29 @@ class AlertDaemon:
             logger.debug(f"⏸️  {ticker}: En cooldown")
             return False
         
-        # Analizar ticker (Production: use all external data sources)
+        # Analizar ticker en AMBOS plazos (Production: use all external data sources)
         is_short_term = self.config['analysis_mode'] == 'short_term'
-        agent = FinancialAgent(ticker, is_short_term=is_short_term, skip_external_data=False)
-        results = agent.analyze()
+        agent_short = FinancialAgent(ticker, is_short_term=True, skip_external_data=False)
+        results_short = agent_short.run_analysis()
         
-        verdict = results.get('verdict', 'NEUTRAL')
-        confidence = int(results.get('confidence', 0))
-        price = results.get('price', 0)
+        agent_long = FinancialAgent(ticker, is_short_term=False, skip_external_data=False)
+        results_long = agent_long.run_analysis()
         
-        logger.info(f"📊 {ticker}: {verdict} (Confianza: {confidence}%)")
+        # Usar corto plazo para decisión de alerta (timing operativo)
+        verdict = results_short.get('strategy', {}).get('verdict', 'NEUTRAL')
+        confidence = int(results_short.get('strategy', {}).get('confidence', 0))
+        price = results_short.get('current_price', 0)
+        
+        logger.info(f"📊 {ticker}: {verdict} (Confianza: {confidence}%, Corto Plazo)")
+        
+        # Calcular métricas de acumulación para contexto
+        combined_conf, short_conf, long_conf = calculate_combined_confidence(results_short, results_long)
+        accum_rating, metrics = get_accumulation_rating(results_short, results_long)
+        long_verdict = results_long.get('strategy', {}).get('verdict', 'N/A')
+        decision = get_accumulation_decision(verdict, long_verdict, combined_conf)
+        
+        logger.info(f"   → Largo Plazo: {long_verdict} | AccumRating: {accum_rating:.0f}%")
+        logger.info(f"   → Recomendación: {decision['reasoning']}")
         
         # Determinar si se debe alertar
         should_alert = False
@@ -231,8 +248,7 @@ class AlertDaemon:
             min_conf = get_min_confidence('buy')
             
             # OPCIÓN C: Requerir confirmación multi-timeframe (2/3 timeframes en COMPRA)
-            # Acceder a análisis multi-timeframe
-            multi_tf = results.get('advanced', {}).get('multi_timeframe', {})
+            multi_tf = results_short.get('advanced', {}).get('multi_timeframe', {})
             timeframes = multi_tf.get('timeframes', {})
             
             # Contar cuántos timeframes tienen señal de COMPRA
@@ -250,7 +266,6 @@ class AlertDaemon:
             else:
                 logger.debug(f"✗ {ticker} COMPRA rechazada: conf={confidence}% (min={min_conf}%), "
                            f"timeframes={buy_timeframes}/3 (requiere 2)")
-
         
         elif verdict in ["VENTA", "FUERTE VENTA"] and self.config['alert_types']['sell']:
             should_alert = True
@@ -259,11 +274,18 @@ class AlertDaemon:
         if should_alert:
             # Extraer detalles técnicos
             details = {
-                'rsi': results.get('rsi'),
-                'macd_status': results.get('macd_status')
+                'rsi': results_short.get('technical', {}).get('rsi'),
+                'macd_status': results_short.get('technical', {}).get('macd_status'),
+                # NUEVO: Información de acumulación
+                'accumulation_rating': f"{accum_rating:.0f}%",
+                'combined_confidence': f"{combined_conf:.0f}%",
+                'long_term_verdict': long_verdict,
+                'accumulation_action': decision['action'],
+                'position_size': decision['position_size']
             }
             
             logger.info(f"🚨 ALERTA: {ticker} - {verdict} ({confidence}%)")
+            logger.info(f"   💡 Acumulación: {decision['action']} | {decision['position_size']}")
             
             if not self.dry_run:
                 success = send_alert(
