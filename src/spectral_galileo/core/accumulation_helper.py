@@ -28,60 +28,89 @@ def calculate_combined_confidence(short_analysis, long_analysis):
 
 def count_bullish_timeframes(multi_timeframe_data):
     """Cuenta cuántos timeframes (daily/weekly/monthly) muestran COMPRA."""
-    timeframes = multi_timeframe_data.get('timeframes', {})
-    bullish_count = 0
-    
-    for tf_name, tf_data in timeframes.items():
-        signal = str(tf_data.get('signal', '')).upper()
-        if 'BUY' in signal or 'COMPRA' in signal:
-            bullish_count += 1
-    
-    return bullish_count
+    try:
+        if multi_timeframe_data is None:
+            return 0
+        
+        timeframes = multi_timeframe_data.get('timeframes', {})
+        if timeframes is None:
+            return 0
+            
+        bullish_count = 0
+        
+        for tf_name, tf_data in timeframes.items():
+            if tf_data is None:
+                continue
+            signal = str(tf_data.get('signal', '')).upper()
+            if 'BUY' in signal or 'COMPRA' in signal:
+                bullish_count += 1
+        
+        return int(bullish_count)
+    except Exception as e:
+        return 0
 
 
 def evaluate_fundamental_strength(long_analysis):
     """Califica fortaleza fundamental (0-100) basada en fundamentales."""
-    fundamental = long_analysis.get('fundamental', {})
-    peg = fundamental.get('peg', 2.0)
-    score = 50
-    
-    # PEG Ratio
-    if peg < 1.0:
-        score += 20
-    elif peg < 1.5:
-        score += 10
-    elif peg > 2.5:
-        score -= 15
-    
-    # Pros y Cons
-    strategy = long_analysis.get('strategy', {})
-    pros_count = len(strategy.get('pros', []))
-    cons_count = len(strategy.get('cons', []))
-    
-    score += (pros_count * 3)
-    score -= (cons_count * 2)
-    
-    # Verdict
-    verdict = strategy.get('verdict', 'HOLD').upper()
-    if 'FUERTE COMPRA' in verdict or 'STRONG BUY' in verdict:
-        score += 10
-    elif 'VENTA' in verdict or 'SELL' in verdict:
-        score -= 20
-    
-    return min(100, max(0, score))
+    try:
+        fundamental = long_analysis.get('fundamental', {})
+        peg = fundamental.get('peg', 2.0)
+        
+        # Si peg es None, usar valor por defecto
+        if peg is None:
+            peg = 2.0
+        peg = float(peg)
+        
+        score = 50
+        
+        # PEG Ratio
+        if peg < 1.0:
+            score += 20
+        elif peg < 1.5:
+            score += 10
+        elif peg > 2.5:
+            score -= 15
+        
+        # Pros y Cons
+        strategy = long_analysis.get('strategy', {})
+        pros_count = len(strategy.get('pros', []))
+        cons_count = len(strategy.get('cons', []))
+        
+        score += (pros_count * 3)
+        score -= (cons_count * 2)
+        
+        # Verdict
+        verdict = strategy.get('verdict', 'HOLD').upper()
+        if 'FUERTE COMPRA' in verdict or 'STRONG BUY' in verdict:
+            score += 10
+        elif 'VENTA' in verdict or 'SELL' in verdict:
+            score -= 20
+        
+        return min(100, max(0, score))
+    except Exception as e:
+        return 50
 
 
 def evaluate_insider_strength(advanced_data):
     """Califica actividad de insiders (0-100)."""
-    insider = advanced_data.get('insider_trading', {})
-    sentiment = str(insider.get('sentiment', 'NEUTRAL')).upper()
-    
-    if 'BULLISH' in sentiment:
-        return 80
-    elif 'NEUTRAL' in sentiment:
+    try:
+        if advanced_data is None:
+            return 50
+        
+        insider = advanced_data.get('insider_trading', {})
+        if insider is None:
+            return 50
+            
+        sentiment = str(insider.get('sentiment', 'NEUTRAL')).upper()
+        
+        if 'BULLISH' in sentiment:
+            return 80
+        elif 'NEUTRAL' in sentiment:
+            return 50
+        else:
+            return 20
+    except Exception as e:
         return 50
-    else:
-        return 20
 
 
 def get_accumulation_rating(short_analysis, long_analysis):
@@ -103,21 +132,31 @@ def get_accumulation_rating(short_analysis, long_analysis):
         long_conf = long_analysis.get('strategy', {}).get('confidence', 0)
         if long_conf is None:
             long_conf = 0
-        metric_1 = min(100, max(0, float(long_conf)))
+        try:
+            metric_1 = float(long_conf)
+        except (TypeError, ValueError):
+            metric_1 = 0
+        metric_1 = min(100, max(0, metric_1))
         metrics['long_term_confidence'] = metric_1
         
         # 2. Fortaleza fundamental (30%)
         metric_2 = evaluate_fundamental_strength(long_analysis)
         if metric_2 is None:
             metric_2 = 50
-        metric_2 = max(0, min(100, float(metric_2)))
+        try:
+            metric_2 = float(metric_2)
+        except (TypeError, ValueError):
+            metric_2 = 50
+        metric_2 = max(0, min(100, metric_2))
         metrics['fundamental_strength'] = metric_2
         
         # 3. Multi-timeframe (20%)
         mtf_data = long_analysis.get('advanced', {}).get('multi_timeframe', {})
         bullish_tf = count_bullish_timeframes(mtf_data)
-        metric_3 = (bullish_tf / 3.0) * 100
-        metric_3 = max(0, min(100, float(metric_3)))
+        if bullish_tf is None:
+            bullish_tf = 0
+        metric_3 = (float(bullish_tf) / 3.0) * 100
+        metric_3 = max(0, min(100, metric_3))
         metrics['timeframe_alignment'] = metric_3
         
         # 4. Insider (10%)
@@ -125,7 +164,11 @@ def get_accumulation_rating(short_analysis, long_analysis):
         metric_4 = evaluate_insider_strength(advanced)
         if metric_4 is None:
             metric_4 = 50
-        metric_4 = max(0, min(100, float(metric_4)))
+        try:
+            metric_4 = float(metric_4)
+        except (TypeError, ValueError):
+            metric_4 = 50
+        metric_4 = max(0, min(100, metric_4))
         metrics['insider_strength'] = metric_4
         
         # Rating ponderado
@@ -140,7 +183,6 @@ def get_accumulation_rating(short_analysis, long_analysis):
     
     except Exception as e:
         # Si hay error, retornar valores por defecto
-        print(f"Aviso: Error en get_accumulation_rating: {str(e)}")
         return 50, {
             'long_term_confidence': 50,
             'fundamental_strength': 50,
